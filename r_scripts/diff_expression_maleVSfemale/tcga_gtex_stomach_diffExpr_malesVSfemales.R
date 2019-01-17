@@ -22,7 +22,7 @@ edgeR_diff_expression <- function(design, factor, expression.data, gene.annot){
 	#model.matrix(~ cov1 + cov2 + cov..., data)
 
 	library(edgeR)
-	
+
 	#create a DGEList object
 	y <- DGEList( counts=expression.data, group=factor, genes=rownames(expression.data) )
 
@@ -156,7 +156,7 @@ stomach_tcga_normal_counts %>% colnames %>% all.equal(rownames(stomach_tcga_norm
 
 # define design matrix
 # adjust for covariates
-design_tcga_normal <- model.matrix(~ race + age_at_diagnosis + tumor_stage + portion + gender, data = stomach_tcga_normal_meta)
+design_tcga_normal <- model.matrix(~ race + age_at_diagnosis + portion + gender, data = stomach_tcga_normal_meta)
 
 
 # DGEList object using edgeR
@@ -194,7 +194,7 @@ diff_expr_tcga_normal_table2 <- edgeR_diff_expression( design_tcga_normal, stoma
 write.table(diff_expr_tcga_normal_table2, file="./files/diff_expr_stomach_normal_tcga_maleVSfemale_edgeR.txt", sep = "\t", quote=F, row.names=F)
 
 diff_expr_tcga_normal_table2 %>% filter(FDR < 0.05, abs(logFC)>1) %>% nrow
-#9
+#11
 
 
 length(intersect(diff_expr_tcga_normal_table2 %>% filter(FDR < 0.05, abs(logFC)>1) %>% pull(genes), diff_expr_tcga_normal_table %>% filter(adj.P.Val < 0.05, abs(logFC)>1) %>% pull(genes)))
@@ -258,14 +258,14 @@ diff_expr_gtex_table <- diff_expr_gtex_table %>%
 write.table(diff_expr_gtex_table, file="./files/diff_expr_stomach_normal_gtex_maleVSfemale_limma.txt", sep = "\t", quote=F, row.names=F)
 
 diff_expr_gtex_table %>% filter(adj.P.Val < 0.05, abs(logFC)>1) %>% nrow
-#9
+#10
 
 
 diff_expr_gtex_table2 <- edgeR_diff_expression( design_gtex, stomach_gtex_meta$gender, stomach_gtex_counts, tcga.geneIDs.annot)
 write.table(diff_expr_gtex_table2, file="./files/diff_expr_stomach_normal_gtex_maleVSfemale_edgeR.txt", sep = "\t", quote=F, row.names=F)
 
 diff_expr_gtex_table2 %>% filter(FDR < 0.05, abs(logFC)>1) %>% nrow
-#13
+#14
 
 
 length(intersect(diff_expr_gtex_table2 %>% filter(FDR < 0.05, abs(logFC)>1) %>% pull(genes), diff_expr_gtex_table %>% filter(adj.P.Val < 0.05, abs(logFC)>1) %>% pull(genes)))
@@ -275,4 +275,3 @@ length(intersect(diff_expr_gtex_table2 %>% filter(FDR < 0.05, abs(logFC)>1) %>% 
 
 
 save(list=ls(), file="r_workspaces/tcga_gtex_stomach_diffExpr_malesVSfemales.RData")
-

@@ -22,7 +22,7 @@ edgeR_diff_expression <- function(design, factor, expression.data, gene.annot){
 	#model.matrix(~ cov1 + cov2 + cov..., data)
 
 	library(edgeR)
-	
+
 	#create a DGEList object
 	y <- DGEList( counts=expression.data, group=factor, genes=rownames(expression.data) )
 
@@ -97,7 +97,7 @@ stomach_males_counts %>% colnames %>% all.equal(rownames(stomach_males_meta))
 
 # define design matrix
 # adjust for covariates
-design_males <- model.matrix(~ race + ethnicity + age_at_diagnosis + tumor_stage + portion + plate + sample_type_id, data = stomach_males_meta)
+design_males <- model.matrix(~ race + ethnicity + age_at_diagnosis + portion + plate + sample_type_id, data = stomach_males_meta)
 
 
 # DGEList object using edgeR
@@ -128,18 +128,18 @@ diff_expr_males_table <- diff_expr_males_table %>%
 write.table(diff_expr_males_table, file="./files/diff_expr_stomach_males_tcga_tumourVSnormal_limma.txt", sep = "\t", quote=F, row.names=F)
 
 diff_expr_males_table %>% filter(adj.P.Val < 0.05, abs(logFC)>1) %>% nrow
-#2524
+#2367
 
 
 diff_expr_males_table2 <- edgeR_diff_expression( design_males, stomach_males_meta$sample_type_id, stomach_males_counts, tcga.geneIDs.annot)
 write.table(diff_expr_males_table2, file="./files/diff_expr_stomach_males_tcga_tumourVSnormal_edgeR.txt", sep = "\t", quote=F, row.names=F)
 
 diff_expr_males_table2 %>% filter(FDR < 0.05, abs(logFC)>1) %>% nrow
-#2398
+#2294
 
 
 length(intersect(diff_expr_males_table2 %>% filter(FDR < 0.05, abs(logFC)>1) %>% pull(genes), diff_expr_males_table %>% filter(adj.P.Val < 0.05, abs(logFC)>1) %>% pull(genes)))
-#2148
+#2019
 
 
 # -- Females
@@ -154,7 +154,7 @@ stomach_females_counts %>% colnames %>% all.equal(rownames(stomach_females_meta)
 
 # define design matrix
 # adjust for covariates
-design_females <- model.matrix(~ race + ethnicity + age_at_diagnosis + tumor_stage + portion + plate + sample_type_id, data = stomach_females_meta)
+design_females <- model.matrix(~ race + ethnicity + age_at_diagnosis + portion + plate + sample_type_id, data = stomach_females_meta)
 
 
 # DGEList object using edgeR
@@ -193,11 +193,11 @@ diff_expr_females_table2 <- edgeR_diff_expression( design_females, stomach_femal
 write.table(diff_expr_females_table2, file="./files/diff_expr_stomach_females_tcga_tumourVSnormal_edgeR.txt", sep = "\t", quote=F, row.names=F)
 
 diff_expr_females_table2 %>% filter(FDR < 0.05, abs(logFC)>1) %>% nrow
-#1935
+#1856
 
 
 length(intersect(diff_expr_females_table2 %>% filter(FDR < 0.05, abs(logFC)>1) %>% pull(genes), diff_expr_females_table %>% filter(adj.P.Val < 0.05, abs(logFC)>1) %>% pull(genes)))
-#1670
+#1586
 
 
 save(list=ls(), file="r_workspaces/tcga_stomach_diffExpr_tumourVSnormal.RData")

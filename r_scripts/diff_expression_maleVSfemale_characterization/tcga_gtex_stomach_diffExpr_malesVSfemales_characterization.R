@@ -15,13 +15,13 @@ library(VennDiagram)
 # -- Stomach
 
 # load datasets
-diff_expr_tumour_table <- read_tsv("./files/diff_expr_stomach_tumour_tcga_maleVSfemale_limma.txt") %>%
+diff_expr_tumour_table <- read_tsv("./files/diff_expr_stomach_tumour_tcga_maleVSfemale_limma.txt")
     #dplyr::rename(adj.P.Val = FDR) %>%
-    mutate(fdr = if_else(adj.P.Val > 0.05, "FDR > 0.05", if_else(adj.P.Val <= 0.01, "FDR <= 0.01", "FDR <= 0.05")))
+    #mutate(fdr = if_else(adj.P.Val > 0.05, "FDR > 0.05", if_else(adj.P.Val <= 0.01, "FDR <= 0.01", "FDR <= 0.05")))
 
-diff_expr_normal_table <- read_tsv("./files/diff_expr_stomach_normal_gtex_maleVSfemale_limma.txt") %>%
+diff_expr_normal_table <- read_tsv("./files/diff_expr_stomach_normal_gtex_maleVSfemale_limma.txt")
     #dplyr::rename(adj.P.Val = FDR) %>%
-    mutate(fdr = if_else(adj.P.Val > 0.05, "FDR > 0.05", if_else(adj.P.Val <= 0.01, "FDR <= 0.01", "FDR <= 0.05")))
+    #mutate(fdr = if_else(adj.P.Val > 0.05, "FDR > 0.05", if_else(adj.P.Val <= 0.01, "FDR <= 0.01", "FDR <= 0.05")))
 
 
 

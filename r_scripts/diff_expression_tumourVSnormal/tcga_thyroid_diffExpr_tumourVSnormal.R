@@ -22,7 +22,7 @@ edgeR_diff_expression <- function(design, factor, expression.data, gene.annot){
 	#model.matrix(~ cov1 + cov2 + cov..., data)
 
 	library(edgeR)
-	
+
 	#create a DGEList object
 	y <- DGEList( counts=expression.data, group=factor, genes=rownames(expression.data) )
 
@@ -102,7 +102,7 @@ thyroid_males_counts %>% colnames %>% all.equal(rownames(thyroid_males_meta))
 
 # define design matrix
 # adjust for covariates
-design_males <- model.matrix(~ race + ethnicity + age_at_diagnosis + tumor_stage + tss + portion + plate + sample_type_id, data = thyroid_males_meta)
+design_males <- model.matrix(~ race + ethnicity + age_at_diagnosis + tss + portion + plate + sample_type_id, data = thyroid_males_meta)
 
 
 # DGEList object using edgeR
@@ -133,18 +133,18 @@ diff_expr_males_table <- diff_expr_males_table %>%
 write.table(diff_expr_males_table, file="./files/diff_expr_thyroid_males_tcga_tumourVSnormal_limma.txt", sep = "\t", quote=F, row.names=F)
 
 diff_expr_males_table %>% filter(adj.P.Val < 0.05, abs(logFC)>1) %>% nrow
-#1532
+#1471
 
 
 diff_expr_males_table2 <- edgeR_diff_expression( design_males, thyroid_males_meta$sample_type_id, thyroid_males_counts, tcga.geneIDs.annot)
 write.table(diff_expr_males_table2, file="./files/diff_expr_thyroid_males_tcga_tumourVSnormal_edgeR.txt", sep = "\t", quote=F, row.names=F)
 
 diff_expr_males_table2 %>% filter(FDR < 0.05, abs(logFC)>1) %>% nrow
-#1557
+#1504
 
 
 length(intersect(diff_expr_males_table2 %>% filter(FDR < 0.05, abs(logFC)>1) %>% pull(genes), diff_expr_males_table %>% filter(adj.P.Val < 0.05, abs(logFC)>1) %>% pull(genes)))
-#1446
+#1379
 
 
 # -- Females
@@ -159,7 +159,7 @@ thyroid_females_counts %>% colnames %>% all.equal(rownames(thyroid_females_meta)
 
 # define design matrix
 # adjust for covariates
-design_females <- model.matrix(~ race + ethnicity + age_at_diagnosis + tumor_stage + tss + portion + plate + sample_type_id, data = thyroid_females_meta)
+design_females <- model.matrix(~ race + ethnicity + age_at_diagnosis + tss + portion + plate + sample_type_id, data = thyroid_females_meta)
 
 
 # DGEList object using edgeR
@@ -190,7 +190,7 @@ diff_expr_females_table <- diff_expr_females_table %>%
 write.table(diff_expr_females_table, file="./files/diff_expr_thyroid_females_tcga_tumourVSnormal_limma.txt", sep = "\t", quote=F, row.names=F)
 
 diff_expr_females_table %>% filter(adj.P.Val < 0.05, abs(logFC)>1) %>% nrow
-#1186
+#1202
 
 
 
@@ -198,11 +198,11 @@ diff_expr_females_table2 <- edgeR_diff_expression( design_females, thyroid_femal
 write.table(diff_expr_females_table2, file="./files/diff_expr_thyroid_females_tcga_tumourVSnormal_edgeR.txt", sep = "\t", quote=F, row.names=F)
 
 diff_expr_females_table2 %>% filter(FDR < 0.05, abs(logFC)>1) %>% nrow
-#1133
+#1148
 
 
 length(intersect(diff_expr_females_table2 %>% filter(FDR < 0.05, abs(logFC)>1) %>% pull(genes), diff_expr_females_table %>% filter(adj.P.Val < 0.05, abs(logFC)>1) %>% pull(genes)))
-#1041
+#1047
 
 
 save(list=ls(), file="r_workspaces/tcga_thyroid_diffExpr_tumourVSnormal.RData")

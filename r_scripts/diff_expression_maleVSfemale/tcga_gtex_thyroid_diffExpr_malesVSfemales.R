@@ -22,7 +22,7 @@ edgeR_diff_expression <- function(design, factor, expression.data, gene.annot){
 	#model.matrix(~ cov1 + cov2 + cov..., data)
 
 	library(edgeR)
-	
+
 	#create a DGEList object
 	y <- DGEList( counts=expression.data, group=factor, genes=rownames(expression.data) )
 
@@ -156,7 +156,7 @@ thyroid_tcga_normal_counts %>% colnames %>% all.equal(rownames(thyroid_tcga_norm
 
 # define design matrix
 # adjust for covariates
-design_tcga_normal <- model.matrix(~ race + ethnicity + age_at_diagnosis + tumor_stage + portion + gender, data = thyroid_tcga_normal_meta)
+design_tcga_normal <- model.matrix(~ race + ethnicity + age_at_diagnosis + portion + gender, data = thyroid_tcga_normal_meta)
 
 
 # DGEList object using edgeR
@@ -194,7 +194,7 @@ diff_expr_tcga_normal_table2 <- edgeR_diff_expression( design_tcga_normal, thyro
 write.table(diff_expr_tcga_normal_table2, file="./files/diff_expr_thyroid_normal_tcga_maleVSfemale_edgeR.txt", sep = "\t", quote=F, row.names=F)
 
 diff_expr_tcga_normal_table2 %>% filter(FDR < 0.05, abs(logFC)>1) %>% nrow
-#10
+#11
 
 
 length(intersect(diff_expr_tcga_normal_table2 %>% filter(FDR < 0.05, abs(logFC)>1) %>% pull(genes), diff_expr_tcga_normal_table %>% filter(adj.P.Val < 0.05, abs(logFC)>1) %>% pull(genes)))
@@ -275,4 +275,3 @@ length(intersect(diff_expr_gtex_table2 %>% filter(FDR < 0.05, abs(logFC)>1) %>% 
 
 
 save(list=ls(), file="r_workspaces/tcga_gtex_thyroid_diffExpr_malesVSfemales.RData")
-

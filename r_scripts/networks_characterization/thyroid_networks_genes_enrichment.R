@@ -23,13 +23,13 @@ library(viridis)
 males_tumour_modules <- read_tsv("./files/thyroid_males_tumour_modules.txt")
 
 males_tumour_modules_info <- males_tumour_modules %>%
-  group_by(moduleL, state2) %>%
+  group_by(moduleL, state) %>%
   summarise(genes=n())
 
 females_tumour_modules <- read_tsv("./files/thyroid_females_tumour_modules.txt")
 
 females_tumour_modules_info <- females_tumour_modules %>%
-  group_by(moduleL, state2) %>%
+  group_by(moduleL, state) %>%
   summarise(genes=n())
 
 
@@ -39,6 +39,7 @@ females_tumour_modules_info <- females_tumour_modules %>%
 
 # enrichment function
 enrich_test <- function(gene_set, universe, terms1, terms2, p_adj, q_value){
+
   enr <- enricher(
     gene = gene_set,
     universe = universe,
@@ -49,6 +50,10 @@ enrich_test <- function(gene_set, universe, terms1, terms2, p_adj, q_value){
     pAdjustMethod = "BH",
     minGSSize = 5,
     maxGSSize = 500)
+
+  enr <- enr@result %>% dplyr::select(Description, ID, Count, p.adjust)
+  return(list(enr))
+
 }
 
 # load gene lists
@@ -82,59 +87,17 @@ universe_enr <- tcga.geneIDs.annot[tcga.geneIDs.annot$geneID %in% universe_enr, 
 
 
 
-
-# TUMOUR male-specific modules
-black_tumour_male <- males_tumour_modules %>% filter(moduleL == "black") %>% pull(geneName)
-black_tumour_male <- enrich_test(black_tumour_male, universe_enr, all_terms, all_terms2, 1, 1)
-black_tumour_male@result %>% filter(p.adjust < 0.05) %>% dplyr::select(Description, ID, Count, p.adjust) %>% filter(Description == "GO_BP") %>% head(10)
-
-blue_tumour_male <- males_tumour_modules %>% filter(moduleL == "blue") %>% pull(geneName)
-blue_tumour_male <- enrich_test(blue_tumour_male, universe_enr, all_terms, all_terms2, 1, 1)
-blue_tumour_male@result %>% filter(p.adjust < 0.05) %>% dplyr::select(Description, ID, Count, p.adjust) %>% filter(Description == "GO_BP") %>% head(10)
-
-green_tumour_male <- males_tumour_modules %>% filter(moduleL == "green") %>% pull(geneName)
-green_tumour_male <- enrich_test(green_tumour_male, universe_enr, all_terms, all_terms2, 1, 1)
-green_tumour_male@result %>% filter(p.adjust < 0.05) %>% dplyr::select(Description, ID, Count, p.adjust) %>% filter(Description == "GO_BP") %>% head(10)
-
-
 # TUMOUR female-specific modules
-# most important: cyan greenyellow lightgreen lightcyan pink salmon tan
-cyan_tumour_fem <- females_tumour_modules %>% filter(moduleL == "cyan") %>% pull(geneName)
-cyan_tumour_fem <- enrich_test(cyan_tumour_fem, universe_enr, all_terms, all_terms2, 1, 1)
-cyan_tumour_fem@result %>% filter(p.adjust < 0.05) %>% dplyr::select(Description, ID, Count, p.adjust) %>% filter(Description == "GO_BP") %>% head(10)
 
-greenyellow_tumour_fem <- females_tumour_modules %>% filter(moduleL == "greenyellow") %>% pull(geneName)
-greenyellow_tumour_fem <- enrich_test(greenyellow_tumour_fem, universe_enr, all_terms, all_terms2, 1, 1)
-greenyellow_tumour_fem@result %>% filter(p.adjust < 0.05) %>% dplyr::select(Description, ID, Count, p.adjust) %>% filter(Description == "GO_BP") %>% head(10)
-
-lightgreen_tumour_fem <- females_tumour_modules %>% filter(moduleL == "lightgreen") %>% pull(geneName)
-lightgreen_tumour_fem <- enrich_test(lightgreen_tumour_fem, universe_enr, all_terms, all_terms2, 1, 1)
-lightgreen_tumour_fem@result %>% filter(p.adjust < 0.05) %>% dplyr::select(Description, ID, Count, p.adjust) %>% filter(Description == "GO_BP") %>% head(10)
-
-lightcyan_tumour_fem <- females_tumour_modules %>% filter(moduleL == "lightcyan") %>% pull(geneName)
-lightcyan_tumour_fem <- enrich_test(lightcyan_tumour_fem, universe_enr, all_terms, all_terms2, 1, 1)
-lightcyan_tumour_fem@result %>% filter(p.adjust < 0.05) %>% dplyr::select(Description, ID, Count, p.adjust) %>% filter(Description == "GO_BP") %>% head(10)
-
-pink_tumour_fem <- females_tumour_modules %>% filter(moduleL == "pink") %>% pull(geneName)
-pink_tumour_fem <- enrich_test(pink_tumour_fem, universe_enr, all_terms, all_terms2, 1, 1)
-pink_tumour_fem@result %>% filter(p.adjust < 0.05) %>% dplyr::select(Description, ID, Count, p.adjust) %>% filter(Description == "GO_BP") %>% head(10)
-
-salmon_tumour_fem <- females_tumour_modules %>% filter(moduleL == "salmon") %>% pull(geneName)
-salmon_tumour_fem <- enrich_test(salmon_tumour_fem, universe_enr, all_terms, all_terms2, 1, 1)
-salmon_tumour_fem@result %>% filter(p.adjust < 0.05) %>% dplyr::select(Description, ID, Count, p.adjust) %>% filter(Description == "GO_BP") %>% head(10)
-
-tan_tumour_fem <- females_tumour_modules %>% filter(moduleL == "tan") %>% pull(geneName)
-tan_tumour_fem <- enrich_test(tan_tumour_fem, universe_enr, all_terms, all_terms2, 1, 1)
-tan_tumour_fem@result %>% filter(p.adjust < 0.05) %>% dplyr::select(Description, ID, Count, p.adjust) %>% filter(Description == "GO_BP") %>% head(10)
-
-green_tumour_fem <- females_tumour_modules %>% filter(moduleL == "green") %>% pull(geneName)
-green_tumour_fem <- enrich_test(green_tumour_fem, universe_enr, all_terms, all_terms2, 1, 1)
-green_tumour_fem@result %>% filter(p.adjust < 0.05) %>% dplyr::select(Description, ID, Count, p.adjust) %>% filter(Description == "GO_BP") %>% head(10)
-
-grey60_tumour_fem <- females_tumour_modules %>% filter(moduleL == "grey60") %>% pull(geneName)
-grey60_tumour_fem <- enrich_test(grey60_tumour_fem, universe_enr, all_terms, all_terms2, 1, 1)
-grey60_tumour_fem@result %>% filter(p.adjust < 0.05) %>% dplyr::select(Description, ID, Count, p.adjust) %>% filter(Description == "GO_BP") %>% head(10)
-
-
-
-# TUMOUR common modules in males and females
+females_tumour_modules_enr <- females_tumour_modules %>%
+  filter(state == "female-specific") %>%
+  dplyr::select(moduleL, geneName) %>%
+  group_by(moduleL) %>%
+  mutate(geneName = list(geneName)) %>%
+  unique() %>%
+  rowwise() %>%
+  mutate(enr = enrich_test(geneName, universe_enr, all_terms, all_terms2, 1, 1)) %>%
+  dplyr::select(-geneName) %>%
+  unnest() %>%
+  filter(p.adjust < 0.05) %>%
+  group_by(moduleL, Description) %>% top_n(-10, p.adjust)

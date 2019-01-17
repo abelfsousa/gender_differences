@@ -17,13 +17,13 @@ library(viridis)
 # -- Stomach
 
 # load datasets
-diff_expr_males_table <- read_tsv("./files/diff_expr_stomach_males_tcga_tumourVSnormal_limma.txt") %>%
+diff_expr_males_table <- read_tsv("./files/diff_expr_stomach_males_tcga_tumourVSnormal_limma.txt")
     #dplyr::rename(adj.P.Val = FDR) %>%
-    mutate(fdr = if_else(adj.P.Val > 0.05, "FDR > 0.05", if_else(adj.P.Val <= 0.01, "FDR <= 0.01", "FDR <= 0.05")))
+    #mutate(fdr = if_else(adj.P.Val > 0.05, "FDR > 0.05", if_else(adj.P.Val <= 0.01, "FDR <= 0.01", "FDR <= 0.05")))
 
-diff_expr_females_table <- read_tsv("./files/diff_expr_stomach_females_tcga_tumourVSnormal_limma.txt") %>%
+diff_expr_females_table <- read_tsv("./files/diff_expr_stomach_females_tcga_tumourVSnormal_limma.txt")
     #dplyr::rename(adj.P.Val = FDR) %>%
-    mutate(fdr = if_else(adj.P.Val > 0.05, "FDR > 0.05", if_else(adj.P.Val <= 0.01, "FDR <= 0.01", "FDR <= 0.05")))
+    #mutate(fdr = if_else(adj.P.Val > 0.05, "FDR > 0.05", if_else(adj.P.Val <= 0.01, "FDR <= 0.01", "FDR <= 0.05")))
 
 
 
@@ -75,14 +75,17 @@ males_females_signf_degs_venn <- draw.pairwise.venn(
     sum(table(males_females_signf_degs$state)[c("common", "male_specific")]),
     sum(table(males_females_signf_degs$state)[c("common", "female_specific")]),
     sum(table(males_females_signf_degs$state)[c("common")]),
+    scaled = F,
     category = c("", ""),
     lty = rep("blank", 2),
     fill = c("light blue", "pink"),
     alpha = rep(0.5, 2),
-    cex = rep(1.4, 3),
+    cex = rep(2, 3),
     cat.cex = rep(1.5, 2))
 ggsave(filename="stomach_males_females_signf_degs_venn.png", plot=males_females_signf_degs_venn, path = "./plots/diff_expression_tumourVSnormal/", width=3, height=3)
+ggsave(filename="stomach_males_females_signf_degs_venn.pdf", plot=males_females_signf_degs_venn, path = "./plots/diff_expression_tumourVSnormal/", width=3, height=3)
 unlink("stomach_males_females_signf_degs_venn.png")
+unlink("stomach_males_females_signf_degs_venn.pdf")
 
 
 
@@ -96,10 +99,10 @@ unlink("stomach_males_females_signf_degs_venn.png")
 
 # append DEGs state
 diff_expr_males_table <- diff_expr_males_table %>%
-    left_join(males_females_signf_degs[,c("genes", "state")], by="genes")
+    left_join(males_signf_degs[,c("genes", "state")], by="genes")
 
 diff_expr_females_table <- diff_expr_females_table %>%
-    left_join(males_females_signf_degs[,c("genes", "state")], by="genes")
+    left_join(females_signf_degs[,c("genes", "state")], by="genes")
 
 
 
@@ -107,41 +110,37 @@ diff_expr_females_table <- diff_expr_females_table %>%
 diff_expr_males_vp <- ggplot( data = diff_expr_males_table, mapping = aes(x=logFC, y=-log10(adj.P.Val), colour=state, fill=fdr) ) +
     geom_point(pch = 21) +
     scale_fill_manual(values=rev(brewer.pal(name="OrRd", n=4)[2:4]), name = "Significance") +
-    scale_colour_manual(values=c("#3182bd", "green", "yellow"), na.value="#bdbdbd", labels=c("Common", "Female-specific", "Male-specific", "Not DEGs"), name = "DEG type") +
+    scale_colour_manual(values=c("#3182bd", "green"), na.value="#bdbdbd", labels=c("Common", "Male-specific", "Not DEGs"), name = "DEG type") +
     geom_line(aes(x=0), color="black", linetype=2, size = 0.3) +
     geom_line(aes(x=1), color="black", linetype=2, size = 0.3) +
-    geom_line(aes(x=2), color="black", linetype=2, size = 0.3) +
     geom_line(aes(x=-1), color="black", linetype=2, size = 0.3) +
-    geom_line(aes(x=-2), color="black", linetype=2, size = 0.3) +
     geom_line(aes(y=-log10(0.05)), color="black", linetype=2, size = 0.3) +
     theme_classic() +
-    theme(axis.title = element_text(colour="black", size=15),
-      axis.text = element_text(colour="black", size=13),
-      legend.text=element_text(colour="black", size=13),
-      legend.title=element_text(colour="black", size=15),
-      plot.title=element_text(colour="black", size=15)) +
-    labs(x = "logFC", y = "FDR (-log10)", title="Stomach - Males")
-ggsave(filename="diff_expr_stomach_males_tcga_tumourVSnormal.png", plot=diff_expr_males_vp, path = "./plots/diff_expression_tumourVSnormal/", width=6, height=6)
+    theme(axis.title = element_text(colour="black", size=18),
+      axis.text = element_text(colour="black", size=16),
+      legend.text=element_text(colour="black", size=16),
+      legend.title=element_text(colour="black", size=18),
+      plot.title=element_text(colour="black", size=20)) +
+    labs(x = "logFC", y = "FDR (-log10)", title="Males")
+ggsave(filename="diff_expr_stomach_males_tcga_tumourVSnormal.png", plot=diff_expr_males_vp, path = "./plots/diff_expression_tumourVSnormal/", width=6, height=7)
 unlink("diff_expr_stomach_males_tcga_tumourVSnormal.png")
 
 diff_expr_females_vp <- ggplot( data = diff_expr_females_table, mapping = aes(x=logFC, y=-log10(adj.P.Val), colour=state, fill=fdr) ) +
     geom_point(pch = 21) +
     scale_fill_manual(values=rev(brewer.pal(name="OrRd", n=4)[2:4]), name = "Significance") +
-    scale_colour_manual(values=c("#3182bd", "green", "yellow"), na.value="#bdbdbd", labels=c("Common", "Female-specific", "Male-specific", "Not DEGs"), name = "DEG type") +
+    scale_colour_manual(values=c("#3182bd", "green"), na.value="#bdbdbd", labels=c("Common", "Female-specific", "Not DEGs"), name = "DEG type") +
     geom_line(aes(x=0), color="black", linetype=2, size = 0.3) +
     geom_line(aes(x=1), color="black", linetype=2, size = 0.3) +
-    geom_line(aes(x=2), color="black", linetype=2, size = 0.3) +
     geom_line(aes(x=-1), color="black", linetype=2, size = 0.3) +
-    geom_line(aes(x=-2), color="black", linetype=2, size = 0.3) +
     geom_line(aes(y=-log10(0.05)), color="black", linetype=2, size = 0.3) +
     theme_classic() +
-    theme(axis.title = element_text(colour="black", size=15),
-      axis.text = element_text(colour="black", size=13),
-      legend.text=element_text(colour="black", size=13),
-      legend.title=element_text(colour="black", size=15),
-      plot.title=element_text(colour="black", size=15)) +
-    labs(x = "logFC", y = "FDR (-log10)", title="Stomach - Females")
-ggsave(filename="diff_expr_stomach_females_tcga_tumourVSnormal.png", plot=diff_expr_females_vp, path = "./plots/diff_expression_tumourVSnormal/", width=6, height=6)
+    theme(axis.title = element_text(colour="black", size=18),
+      axis.text = element_text(colour="black", size=16),
+      legend.text=element_text(colour="black", size=16),
+      legend.title=element_text(colour="black", size=18),
+      plot.title=element_text(colour="black", size=20)) +
+    labs(x = "logFC", y = "FDR (-log10)", title="Females")
+ggsave(filename="diff_expr_stomach_females_tcga_tumourVSnormal.png", plot=diff_expr_females_vp, path = "./plots/diff_expression_tumourVSnormal/", width=6, height=7)
 unlink("diff_expr_stomach_females_tcga_tumourVSnormal.png")
 
 
@@ -153,6 +152,7 @@ unlink("diff_expr_stomach_females_tcga_tumourVSnormal.png")
 
 # enrichment function
 enrich_test <- function(gene_set, universe, terms1, terms2, p_adj, q_value){
+
   enr <- enricher(
     gene = gene_set,
     universe = universe,
@@ -163,6 +163,10 @@ enrich_test <- function(gene_set, universe, terms1, terms2, p_adj, q_value){
     pAdjustMethod = "BH",
     minGSSize = 5,
     maxGSSize = 500)
+
+  enr <- enr@result %>% dplyr::select(Description, ID, Count, p.adjust)
+  return(list(enr))
+
 }
 
 # load gene lists
@@ -189,44 +193,81 @@ universe_enr <- diff_expr_males_table$geneName
 
 
 
-# common DEGs
-common_degs <- males_females_signf_degs %>%
-  filter(state == "common") %>%
-  pull(geneName)
+# enrichment analysis
+all_diff_genes <- males_females_signf_degs %>%
+  dplyr::select(state, geneName) %>%
+  group_by(state) %>%
+  mutate(geneName = list(geneName)) %>%
+  unique() %>%
+  rowwise() %>%
+  mutate(enr = enrich_test(geneName, universe_enr, all_terms, all_terms2, 1, 1)) %>%
+  dplyr::select(-geneName) %>%
+  unnest()
 
-common_degs_enr <- enrich_test(common_degs, universe_enr, all_terms, all_terms2, 1, 1)
-common_degs_enr_tab <- common_degs_enr@result
 
-
-common_degs_enr_barplot <- common_degs_enr_tab %>%
-  as.tibble() %>%
-  dplyr::select(ID, Description, p_adj=p.adjust) %>%
-  filter(p_adj < 0.05) %>%
-  mutate(p_adj = -log10(p_adj)) %>%
-  group_by(Description) %>%
-  top_n(n=10, wt=p_adj) %>%
-  ungroup() %>%
+all_diff_genes_bp <- all_diff_genes %>%
+  filter(p.adjust < 0.05) %>%
   filter(!str_detect(Description, "GO_MF")) %>%
   filter(!str_detect(Description, "GO_CC")) %>%
+  filter(!str_detect(Description, "IMMUNO")) %>%
+  mutate(log10_p = -log10(p.adjust)) %>%
+  group_by(state, Description) %>%
+  top_n(10, log10_p) %>%
+  ungroup() %>%
   mutate_if(is.character, as.factor) %>%
-  mutate(ID = fct_reorder(ID, p_adj)) %>%
-  ggplot(mapping = aes(x=ID, y = p_adj, fill = p_adj)) +
-    geom_bar(stat="identity") +
-    theme_classic() +
-    facet_wrap( ~ Description, scales = "free") +
-    theme(
-      axis.title.x=element_text(colour="black", size=15),
-      axis.title.y=element_blank(),
-      axis.text.y=element_text(colour="black", size=10),
-      axis.text.x=element_text(colour="black", size=12),
-      plot.title = element_blank(),
-      strip.text.x = element_text(size=12),
-      strip.background = element_blank()) +
-    coord_flip() +
-    scale_fill_viridis(option="D", name="") +
-    scale_y_continuous(name = "Adjusted P-value (-log10)")
-ggsave(filename="stomach_common_degs_enr_barplot.png", plot=common_degs_enr_barplot, path="./plots/diff_expression_tumourVSnormal/", width = 16, height = 8)
-ggsave(filename="stomach_common_degs_enr_barplot.pdf", plot=common_degs_enr_barplot, path="./plots/diff_expression_tumourVSnormal/", width = 16, height = 8)
+  mutate(ID = fct_reorder(ID, log10_p)) %>%
+  ggplot(mapping = aes(x=ID, y = log10_p, fill = log10_p)) +
+  geom_bar(stat="identity") +
+  theme_classic() +
+  facet_grid(state ~ Description, scales = "free") +
+  theme(
+    axis.title.x=element_text(colour="black", size=15),
+    axis.title.y=element_blank(),
+    axis.text.y=element_text(colour="black", size=10),
+    axis.text.x=element_text(colour="black", size=12),
+    plot.title = element_blank(),
+    strip.text.x = element_text(size=12),
+    strip.background = element_blank()) +
+  coord_flip() +
+  scale_fill_viridis(option="D", name="") +
+  scale_y_continuous(name = "Adjusted P-value (-log10)")
+ggsave(filename="stomach_all_diff_genes_tumour_normal_bp.png", plot=all_diff_genes_bp, path="./plots/diff_expression_tumourVSnormal/", width = 14, height = 4)
+ggsave(filename="stomach_all_diff_genes_tumour_normal_bp.pdf", plot=all_diff_genes_bp, path="./plots/diff_expression_tumourVSnormal/", width = 14, height = 4)
+unlink("stomach_all_diff_genes_tumour_normal_bp.png")
+unlink("stomach_all_diff_genes_tumour_normal_bp.pdf")
+
+
+
+
+# common DEGs
+common_degs_enr_barplot <- all_diff_genes %>%
+  filter(p.adjust < 0.05, state == "common") %>%
+  filter(!str_detect(Description, "GO_MF")) %>%
+  filter(!str_detect(Description, "GO_CC")) %>%
+  filter(!str_detect(Description, "IMMUNO")) %>%
+  mutate(log10_p = -log10(p.adjust)) %>%
+  group_by(state, Description) %>%
+  top_n(10, log10_p) %>%
+  ungroup() %>%
+  mutate_if(is.character, as.factor) %>%
+  mutate(ID = fct_reorder(ID, log10_p)) %>%
+  ggplot(mapping = aes(x=ID, y = log10_p, fill = log10_p)) +
+  geom_bar(stat="identity") +
+  theme_classic() +
+  facet_wrap( ~ Description, scales = "free") +
+  theme(
+    axis.title.x=element_text(colour="black", size=16),
+    axis.title.y=element_blank(),
+    axis.text.y=element_text(colour="black", size=12),
+    axis.text.x=element_text(colour="black", size=12),
+    plot.title = element_blank(),
+    strip.text = element_text(size=15),
+    strip.background = element_blank()) +
+  coord_flip() +
+  scale_fill_viridis(option="D", name="", guide=F) +
+  scale_y_continuous(name = "Adjusted P-value (-log10)")
+ggsave(filename="stomach_common_degs_enr_barplot.png", plot=common_degs_enr_barplot, path="./plots/diff_expression_tumourVSnormal/", width = 14, height = 4)
+ggsave(filename="stomach_common_degs_enr_barplot.pdf", plot=common_degs_enr_barplot, path="./plots/diff_expression_tumourVSnormal/", width = 14, height = 4)
 unlink("stomach_common_degs_enr_barplot.png")
 unlink("stomach_common_degs_enr_barplot.pdf")
 
@@ -234,46 +275,35 @@ unlink("stomach_common_degs_enr_barplot.pdf")
 
 
 
-
 # female-specific DEGs
-female_specific_degs <- males_females_signf_degs %>%
-  filter(state == "female_specific") %>%
-  pull(geneName)
-
-
-female_specific_degs_enr <- enrich_test(female_specific_degs, universe_enr, all_terms, all_terms2, 1, 1)
-female_specific_degs_enr_tab <- female_specific_degs_enr@result
-
-
-female_specific_degs_enr_barplot <- female_specific_degs_enr_tab %>%
-  as.tibble() %>%
-  dplyr::select(ID, Description, p_adj=p.adjust) %>%
-  filter(p_adj < 0.05) %>%
-  mutate(p_adj = -log10(p_adj)) %>%
-  group_by(Description) %>%
-  top_n(n=10, wt=p_adj) %>%
-  ungroup() %>%
+female_specific_degs_enr_barplot <- all_diff_genes %>%
+  filter(p.adjust < 0.05, state == "female_specific") %>%
   filter(!str_detect(Description, "GO_MF")) %>%
   filter(!str_detect(Description, "GO_CC")) %>%
+  filter(!str_detect(Description, "IMMUNO")) %>%
+  mutate(log10_p = -log10(p.adjust)) %>%
+  group_by(state, Description) %>%
+  top_n(10, log10_p) %>%
+  ungroup() %>%
   mutate_if(is.character, as.factor) %>%
-  mutate(ID = fct_reorder(ID, p_adj)) %>%
-  ggplot(mapping = aes(x=ID, y = p_adj, fill = p_adj)) +
-    geom_bar(stat="identity") +
-    theme_classic() +
-    facet_wrap( ~ Description, scales = "free", nrow=3) +
-    theme(
-      axis.title.x=element_text(colour="black", size=15),
-      axis.title.y=element_blank(),
-      axis.text.y=element_text(colour="black", size=10),
-      axis.text.x=element_text(colour="black", size=12),
-      plot.title = element_blank(),
-      strip.text.x = element_text(size=12),
-      strip.background = element_blank()) +
+  mutate(ID = fct_reorder(ID, log10_p)) %>%
+  ggplot(mapping = aes(x=ID, y = log10_p, fill = log10_p)) +
+  geom_bar(stat="identity") +
+  theme_classic() +
+  facet_wrap( ~ Description, scales = "free") +
+  theme(
+    axis.title.x=element_text(colour="black", size=16),
+    axis.title.y=element_blank(),
+    axis.text.y=element_text(colour="black", size=12),
+    axis.text.x=element_text(colour="black", size=12),
+    plot.title = element_blank(),
+    strip.text = element_text(size=15),
+    strip.background = element_blank()) +
   coord_flip() +
-  scale_fill_viridis(option="D", name="") +
+  scale_fill_viridis(option="D", name="", guide=F) +
   scale_y_continuous(name = "Adjusted P-value (-log10)")
-ggsave(filename="stomach_female_specific_degs_enr_barplot.png", plot=female_specific_degs_enr_barplot, path="./plots/diff_expression_tumourVSnormal/", width = 10, height = 10)
-ggsave(filename="stomach_female_specific_degs_enr_barplot.pdf", plot=female_specific_degs_enr_barplot, path="./plots/diff_expression_tumourVSnormal/", width = 10, height = 10)
+ggsave(filename="stomach_female_specific_degs_enr_barplot.png", plot=female_specific_degs_enr_barplot, path="./plots/diff_expression_tumourVSnormal/", width = 14, height = 2)
+ggsave(filename="stomach_female_specific_degs_enr_barplot.pdf", plot=female_specific_degs_enr_barplot, path="./plots/diff_expression_tumourVSnormal/", width = 14, height = 2)
 unlink("stomach_female_specific_degs_enr_barplot.png")
 unlink("stomach_female_specific_degs_enr_barplot.pdf")
 
@@ -284,44 +314,34 @@ unlink("stomach_female_specific_degs_enr_barplot.pdf")
 
 
 # male-specific DEGs: GO terms
-male_specific_degs <- males_females_signf_degs %>%
-  filter(state == "male_specific") %>%
-  pull(geneName)
-
-
-male_specific_degs_enr <- enrich_test(male_specific_degs, universe_enr, all_terms, all_terms2, 1, 1)
-male_specific_degs_enr_tab <- male_specific_degs_enr@result
-
-
-male_specific_degs_enr_barplot <- male_specific_degs_enr_tab %>%
-  as.tibble() %>%
-  dplyr::select(ID, Description, p_adj=p.adjust) %>%
-  filter(p_adj < 0.05) %>%
-  mutate(p_adj = -log10(p_adj)) %>%
-  group_by(Description) %>%
-  top_n(n=10, wt=p_adj) %>%
-  ungroup() %>%
+male_specific_degs_enr_barplot <- all_diff_genes %>%
+  filter(p.adjust < 0.05, state == "male_specific") %>%
   filter(!str_detect(Description, "GO_MF")) %>%
   filter(!str_detect(Description, "GO_CC")) %>%
+  filter(!str_detect(Description, "IMMUNO")) %>%
+  mutate(log10_p = -log10(p.adjust)) %>%
+  group_by(state, Description) %>%
+  top_n(10, log10_p) %>%
+  ungroup() %>%
   mutate_if(is.character, as.factor) %>%
-  mutate(ID = fct_reorder(ID, p_adj)) %>%
-  ggplot(mapping = aes(x=ID, y = p_adj, fill = p_adj)) +
-    geom_bar(stat="identity") +
-    theme_classic() +
-    facet_wrap( ~ Description, scales = "free", nrow=3) +
-    theme(
-      axis.title.x=element_text(colour="black", size=15),
-      axis.title.y=element_blank(),
-      axis.text.y=element_text(colour="black", size=10),
-      axis.text.x=element_text(colour="black", size=12),
-      plot.title = element_blank(),
-      strip.text.x = element_text(size=12),
-      strip.background = element_blank()) +
+  mutate(ID = fct_reorder(ID, log10_p)) %>%
+  ggplot(mapping = aes(x=ID, y = log10_p, fill = log10_p)) +
+  geom_bar(stat="identity") +
+  theme_classic() +
+  facet_wrap( ~ Description, scales = "free") +
+  theme(
+    axis.title.x=element_text(colour="black", size=16),
+    axis.title.y=element_blank(),
+    axis.text.y=element_text(colour="black", size=12),
+    axis.text.x=element_text(colour="black", size=12),
+    plot.title = element_blank(),
+    strip.text = element_text(size=15),
+    strip.background = element_blank()) +
   coord_flip() +
-  scale_fill_viridis(option="D", name="") +
+  scale_fill_viridis(option="D", name="", guide=F) +
   scale_y_continuous(name = "Adjusted P-value (-log10)")
-ggsave(filename="stomach_male_specific_degs_enr_barplot.png", plot=male_specific_degs_enr_barplot, path="./plots/diff_expression_tumourVSnormal/", width = 10, height = 10)
-ggsave(filename="stomach_male_specific_degs_enr_barplot.pdf", plot=male_specific_degs_enr_barplot, path="./plots/diff_expression_tumourVSnormal/", width = 10, height = 10)
+ggsave(filename="stomach_male_specific_degs_enr_barplot.png", plot=male_specific_degs_enr_barplot, path="./plots/diff_expression_tumourVSnormal/", width = 14, height = 2)
+ggsave(filename="stomach_male_specific_degs_enr_barplot.pdf", plot=male_specific_degs_enr_barplot, path="./plots/diff_expression_tumourVSnormal/", width = 14, height = 2)
 unlink("stomach_male_specific_degs_enr_barplot.png")
 unlink("stomach_male_specific_degs_enr_barplot.pdf")
 

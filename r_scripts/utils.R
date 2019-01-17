@@ -54,25 +54,25 @@ remove_batch <- function(gene, data, covar){
 
 
 
-  get_lower_tri <- function(cormat){
+get_lower_tri <- function(cormat){
 
-    # get lower triangle of the correlation matrix
+  # get lower triangle of the correlation matrix
 
-    cormat[upper.tri(cormat)] <- NA
+  cormat[upper.tri(cormat)] <- NA
 
-    return(cormat)
-  }
+  return(cormat)
+}
 
 
 
-  get_upper_tri <- function(cormat){
+get_upper_tri <- function(cormat){
 
-    # get upper triangle of the correlation matrix
+  # get upper triangle of the correlation matrix
 
-    cormat[lower.tri(cormat)]<- NA
+  cormat[lower.tri(cormat)]<- NA
 
-    return(cormat)
-  }
+  return(cormat)
+}
 
 
 
@@ -151,70 +151,74 @@ overlap_table_wgcna <- function(network1, network2, net1.label, net2.label, file
 
 
 
-networks_comparison <- function(network1.fpkm.mat, network2.fpkm.mat, network1, network2, overlap.table, ov = 0.7, pval = 1e-10, kme = 0.7){
+networks_comparison <- function(network1.fpkm.mat, network2.fpkm.mat, network1, network2, overlap.table, pval = 0.05, kme = 0.7){
 
-    #build a correlation table filled with zeros;
-    #modules specific of ńetwork1 or ńetwork2 will have a row/collumn filled with zeros;
-    #an overlap higher than 70% of total genes of one module (between a pair of modules) and a pvalue lower than 1e-10
-    #will indicate that that module is present in the other dataset (common to the two networks);
-    #for common modules between datasets, a correlation of kME < 0.7 (correlation between the common genes) will indicate a loss of topology
-    #while a correlation of kME >= 0.7 will indicate a preservation of topology
+  #build a correlation table filled with zeros;
+  #for common modules between datasets, a correlation of kME < 0.7 (correlation between the common genes) will indicate a loss of topology
+  #while a correlation of kME >= 0.7 will indicate a preservation of topology
 
-    network1.colors = labels2colors(network1$colors)
-    network2.colors = labels2colors(network2$colors)
+  network1.colors = labels2colors(network1$colors)
+  network2.colors = labels2colors(network2$colors)
 
-    color.code = standardColors(n = NULL)
-    color.code = c("grey", color.code)
+  color.code = standardColors(n = NULL)
+  color.code = c("grey", color.code)
 
-    cor.table.1 = as.data.frame( matrix( data = 0, nrow = length(table(network1.colors))-1, ncol = length(table(network2.colors))-1 ) )
-    rownames(cor.table.1) = names(table(network1.colors))[which(names(table(network1.colors)) != "grey")]
-    colnames(cor.table.1) = names(table(network2.colors))[which(names(table(network2.colors)) != "grey")]
-    cor.table.2 = cor.table.1
+  cor.table.1 = as.data.frame( matrix( data = 0, nrow = length(table(network1.colors))-1, ncol = length(table(network2.colors))-1 ) )
+  rownames(cor.table.1) = names(table(network1.colors))[which(names(table(network1.colors)) != "grey")]
+  colnames(cor.table.1) = names(table(network2.colors))[which(names(table(network2.colors)) != "grey")]
+  cor.table.2 = cor.table.1
 
-    #calculate kME for net1 and net2 modules using signedKME function from WGCNA
-    kME.table.network1 = signedKME(network1.fpkm.mat, network1$MEs)
-    kME.table.network2 = signedKME(network2.fpkm.mat, network2$MEs)
+  #calculate kME for net1 and net2 modules using signedKME function from WGCNA
+  kME.table.network1 = signedKME(network1.fpkm.mat, network1$MEs)
+  kME.table.network2 = signedKME(network2.fpkm.mat, network2$MEs)
 
-    #assign names to the vectors of colors in order to be able to identify the genes (ensembl IDs) that intersect in each module overlap
-    names(network1.colors) = colnames(network1.fpkm.mat)
-    names(network2.colors) = colnames(network2.fpkm.mat)
+  #assign names to the vectors of colors in order to be able to identify the genes (ensembl IDs) that intersect in each module overlap
+  names(network1.colors) = colnames(network1.fpkm.mat)
+  names(network2.colors) = colnames(network2.fpkm.mat)
 
-    #iterate over the net1 modules (rows)
-    for(net1.module in rownames(overlap.table$countTable)){
-        if (net1.module != "grey"){
-            #iterate over the net2 modules (columns)
-            for(net2.module in colnames(overlap.table$countTable)){
-                if (net2.module != "grey"){
-                    #calculate if the overlap between two modules is higher than 70% of the genes in one of the modules
-                    if( overlap.table$countTable[net1.module, net2.module] >= as.numeric(table(network1.colors)[net1.module])*ov | overlap.table$countTable[net1.module, net2.module] >= as.numeric(table(network2.colors)[net2.module])*ov ) {
-                      #calculate if the p-value of the overlap is lower than 1e-10
-                      if( as.numeric(overlap.table$pTable[net1.module, net2.module]) <= pval  ){
-                        #intersect the genes in both modules in order to get the common gene IDs
-                        overlaped.genes = intersect( names( which(network1.colors == net1.module) ), names( which(network2.colors == net2.module) ) )
-                        #obtain the kMEs (correlation of the gene profiles with the module eigengene) of the intersected genes in net1 and net2 datasets
-                        #selecting the correct module eigengene, and correlate them
-                        cor.kME = cor( kME.table.network1[overlaped.genes , paste("kME", match(net1.module, color.code)-1, sep="")], kME.table.network2[overlaped.genes , paste("kME", match(net2.module, color.code)-1, sep="")] )
-                        #replace the zero in the correlation table by the correlation of kMEs between both modules
-                        cor.table.1[net1.module, net2.module] = cor.kME
-                        if(abs(cor.kME) < kme){
-                            cor.table.2[net1.module, net2.module] = 1
-                        }
-                        else{
-                            cor.table.2[net1.module, net2.module] = 2
-                        }
-                        }
-                    }
-                }
+  #iterate over the net1 modules (rows)
+  for(net1.module in rownames(overlap.table$countTable)){
+    if (net1.module != "grey"){
+      #iterate over the net2 modules (columns)
+      for(net2.module in colnames(overlap.table$countTable)){
+        if (net2.module != "grey"){
+          #calculate if the p-value of the overlap is lower than pval
+          if( as.numeric(overlap.table$pTable[net1.module, net2.module]) < 0.05 ) {
+
+            #calculate the percentage of overlap
+            ov <- overlap.table$countTable[net1.module, net2.module]/min(as.numeric(table(network1.colors)[net1.module]), as.numeric(table(network2.colors)[net2.module]))
+            #intersect the genes in both modules in order to get the common gene IDs
+            overlaped.genes = intersect( names( which(network1.colors == net1.module) ), names( which(network2.colors == net2.module) ) )
+            #obtain the kMEs (correlation of the gene profiles with the module eigengene) of the intersected genes in net1 and net2 datasets
+            #selecting the correct module eigengene, and correlate them
+            cor.kME = cor(
+              kME.table.network1[overlaped.genes , paste("kME", match(net1.module, color.code)-1, sep="")],
+              kME.table.network2[overlaped.genes , paste("kME", match(net2.module, color.code)-1, sep="")] )
+
+            if( ov >= 0.2 & ov < 0.5 ){
+                cor.table.1[net1.module, net2.module] = 2
+                cor.table.2[net1.module, net2.module] = cor.kME
+              } else if( ov >= 0.5 & ov < 0.7 ){
+                cor.table.1[net1.module, net2.module] = 3
+                cor.table.2[net1.module, net2.module] = cor.kME
+              } else if( ov >= 0.7 ){
+                cor.table.1[net1.module, net2.module] = 4
+                cor.table.2[net1.module, net2.module] = cor.kME
+              }
             }
+          }
         }
+      }
     }
 
-    #net1.specific.modules <- names( rowSums(cor.table.1)[rowSums(cor.table.1) == 0] )
-    #net2.specific.modules <- names( colSums(cor.table.1)[colSums(cor.table.1) == 0] )
+  rows = which(rowSums(cor.table.1) == 0)
+  cols = which(colSums(cor.table.1) == 0)
+  cor.table.1[rows, ] <- 1
+  cor.table.1[, cols] <- 1
 
-    data.list <- list(cor.table.1, cor.table.2)
-    names(data.list) <- c("corTable1", "corTable2")
+  data.list <- list(cor.table.1, cor.table.2)
+  names(data.list) <- c("corTable1", "corTable2")
 
-    return(data.list)
+  return(data.list)
 
 }
