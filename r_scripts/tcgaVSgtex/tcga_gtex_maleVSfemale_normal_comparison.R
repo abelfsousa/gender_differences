@@ -16,19 +16,20 @@ library(RColorBrewer)
 
 # load DEGs dataset
 thyroid_tcga_degs_gender <- read_tsv("./files/diff_expr_thyroid_normal_gtex_maleVSfemale_edgeR.txt") %>%
-    dplyr::rename(adj.P.Val = FDR)
+  dplyr::rename(adj.P.Val = FDR)
 thyroid_gtex_degs_gender <- read_tsv("./files/diff_expr_thyroid_normal_tcga_maleVSfemale_edgeR.txt") %>%
-    dplyr::rename(adj.P.Val = FDR)
+  dplyr::rename(adj.P.Val = FDR)
 
 
 
 thyroid_tcga_gtex <- inner_join(thyroid_tcga_degs_gender[, c("geneName", "logFC", "adj.P.Val")], thyroid_gtex_degs_gender[, c("geneName", "logFC", "adj.P.Val")], by="geneName") %>%
-	dplyr::rename(logFC_tcga = logFC.x, fdr_tcga = adj.P.Val.x, logFC_gtex = logFC.y, fdr_gtex = adj.P.Val.y)
+	dplyr::rename(logFC_tcga = logFC.x, fdr_tcga = adj.P.Val.x, logFC_gtex = logFC.y, fdr_gtex = adj.P.Val.y) %>%
+  mutate(fdr_tcga = -log10(fdr_tcga), fdr_gtex = -log10(fdr_gtex))
 
 
 thyroid_tcga_gtex <- thyroid_tcga_gtex %>%
     filter(abs(logFC_tcga) < 2.5 & abs(logFC_gtex) < 2.5) %>%
-    filter(fdr_gtex > 0.7)
+    filter(fdr_gtex < 1, fdr_tcga < 10)
 
 
 # scatterplot
@@ -74,12 +75,13 @@ stomach_gtex_degs_gender <- read_tsv("./files/diff_expr_stomach_normal_tcga_male
 
 
 stomach_tcga_gtex <- inner_join(stomach_tcga_degs_gender[, c("geneName", "logFC", "adj.P.Val")], stomach_gtex_degs_gender[, c("geneName", "logFC", "adj.P.Val")], by="geneName") %>%
-	dplyr::rename(logFC_tcga = logFC.x, fdr_tcga = adj.P.Val.x, logFC_gtex = logFC.y, fdr_gtex = adj.P.Val.y)
+	dplyr::rename(logFC_tcga = logFC.x, fdr_tcga = adj.P.Val.x, logFC_gtex = logFC.y, fdr_gtex = adj.P.Val.y) %>%
+  mutate(fdr_tcga = -log10(fdr_tcga), fdr_gtex = -log10(fdr_gtex))
 
 
 stomach_tcga_gtex <- stomach_tcga_gtex %>%
-    filter(abs(logFC_gtex) < 5) %>%
-    filter(fdr_gtex > 0.94)
+    filter(abs(logFC_gtex) < 5 & abs(logFC_tcga) < 5) %>%
+    filter(fdr_gtex < 10, fdr_tcga < 10)
 
 
 # scatterplot
@@ -106,12 +108,3 @@ stomach_tcga_gtex_plot2 <- ggplot(data=stomach_tcga_gtex, mapping=aes(x=fdr_gtex
     labs(x = "-log10 FDR GTEx", y = "-log10 FDR TCGA", title=paste("stomach -log10 FDR correlation:", round(cor(stomach_tcga_gtex$fdr_tcga, stomach_tcga_gtex$fdr_gtex),4)))
 ggsave(filename="stomach_tcga_gtex_degs_normal_cor_log10fdr.png", plot=stomach_tcga_gtex_plot2, path = "./plots/maleVSfemale_tcga_gtex/")
 unlink("stomach_tcga_gtex_degs_normal_cor_log10fdr.png")
-
-
-
-
-
-
-
-
-

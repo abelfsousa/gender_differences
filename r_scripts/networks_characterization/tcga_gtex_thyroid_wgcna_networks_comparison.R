@@ -42,7 +42,7 @@ write.table(males_females_tumour_comparison$corTable1, "./files/thyroid_males_fe
 write.table(males_females_tumour_comparison$corTable2, "./files/thyroid_males_females_tumour_comparison_corTable2.txt", quote=F, sep="\t", row.names=T)
 
 
-pdf(file="./plots/wgcna_networks/tcga_thyroid_tumours_wgcna_networks_comparison_malesVSfemales2.pdf", w=12, h=8)
+pdf(file="./plots/wgcna_networks/tcga_thyroid_tumours_wgcna_networks_comparison_malesVSfemales2.pdf", w=6, h=5)
 heatmap.2( x=as.matrix(males_females_tumour_comparison$corTable1),
     Rowv=T,
     Colv=T,
@@ -52,13 +52,13 @@ heatmap.2( x=as.matrix(males_females_tumour_comparison$corTable1),
     key = FALSE,
     margins=c(8,8),
     col = c("grey", "#1c9099", "#deebf7", "#9ecae1", "#3182bd"),
-    main = "Thyroid Tumours (TCGA): Men modules vs Women modules",
+    main = "",
     xlab = "Women modules",
     ylab = "Men modules",
     labRow = paste(rownames(as.matrix(males_females_tumour_comparison$corTable1)), table(labels2colors(males_tumour_network$colors))[names(table(labels2colors(males_tumour_network$colors))) != "grey"]),
     labCol = paste(colnames(as.matrix(males_females_tumour_comparison$corTable1)), table(labels2colors(females_tumour_network$colors))[names(table(labels2colors(females_tumour_network$colors))) != "grey"]))
 legend("topleft", fill = c("#1c9099", "#deebf7", "#9ecae1", "#3182bd"),
-  legend = c("Network-specific module", "Module pair lowly-conserved", "Module pair moderately-conserved", "Module pair highly-conserved"), y.intersp = 2 )
+  legend = c("Network-specific module", "Module pair lowly-conserved", "Module pair moderately-conserved", "Module pair highly-conserved"), y.intersp = 1.5, cex=0.6 )
 dev.off()
 
 male_code <- c("1" = "male-specific", "2" = "lowly-conserved", "3" = "moderately-conserved", "4" = "highly-conserved")
@@ -99,7 +99,7 @@ write.table(males_females_normal_comparison$corTable1, "./files/thyroid_males_fe
 write.table(males_females_normal_comparison$corTable2, "./files/thyroid_males_females_normal_comparison_corTable2.txt", quote=F, sep="\t", row.names=T)
 
 
-pdf(file="./plots/wgcna_networks/gtex_thyroid_wgcna_networks_comparison_malesVSfemales2.pdf", w=12, h=8)
+pdf(file="./plots/wgcna_networks/gtex_thyroid_wgcna_networks_comparison_malesVSfemales2.pdf", w=8, h=8)
 heatmap.2( x=as.matrix(males_females_normal_comparison$corTable1),
     Rowv=T,
     Colv=T,
@@ -109,13 +109,13 @@ heatmap.2( x=as.matrix(males_females_normal_comparison$corTable1),
     key = FALSE,
     margins=c(8,8),
     col = c("grey", "#1c9099", "#deebf7", "#9ecae1", "#3182bd"),
-    main = "Thyroid Tumours (TCGA): Men modules vs Women modules",
+    main = "",
     xlab = "Women modules",
     ylab = "Men modules",
     labRow = paste(rownames(as.matrix(males_females_normal_comparison$corTable1)), table(labels2colors(males_normal_network$colors))[names(table(labels2colors(males_normal_network$colors))) != "grey"]),
     labCol = paste(colnames(as.matrix(males_females_normal_comparison$corTable1)), table(labels2colors(females_normal_network$colors))[names(table(labels2colors(females_normal_network$colors))) != "grey"]))
 legend("topleft", fill = c("#1c9099", "#deebf7", "#9ecae1", "#3182bd"),
-  legend = c("Network-specific module", "Module pair lowly-conserved", "Module pair moderately-conserved", "Module pair highly-conserved"), y.intersp = 2 )
+  legend = c("Network-specific module", "Module pair lowly-conserved", "Module pair moderately-conserved", "Module pair highly-conserved"), y.intersp = 1.5, cex=0.6 )
 dev.off()
 
 normal_male_modules <- tibble(network = "males",

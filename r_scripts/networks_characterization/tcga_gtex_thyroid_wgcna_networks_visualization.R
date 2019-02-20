@@ -4,17 +4,16 @@
 # GENE-CORRELATION NETWORK ANALYSES USING WGCNA PACKAGE
 # TCGA + GTEx data
 
+# TOM plot
+
 
 
 
 library(WGCNA)
 library(tidyverse)
-library(gplots)
 
-options(bitmapType = "cairo")
-
-source("utils.R")
-
+options(stringsAsFactors = FALSE)
+enableWGCNAThreads(3)
 
 
 
@@ -25,163 +24,76 @@ load("./r_workspaces/tcga_gtex_thyroid_wgcna_networks.RData")
 
 
 
-# build correlation matrixes
-males_tumour_corMat <- cor(males_tumour)
-males_normal_corMat <- cor(males_normal)
-females_tumour_corMat <- cor(females_tumour)
-females_normal_corMat <- cor(females_normal)
+
+# Males
 
 
-males_tumour_corMat2 <- males_tumour_corMat %>% get_upper_tri %>% as.numeric %>% na.exclude %>% as.numeric
+## tumour
+colors1 <- labels2colors(males_tumour_network$colors)
 
-males_normal_corMat2 <- males_normal_corMat %>% get_upper_tri %>% as.numeric %>% na.exclude %>% as.numeric
-
-females_tumour_corMat2 <- females_tumour_corMat %>% get_upper_tri %>% as.numeric %>% na.exclude %>% as.numeric
-
-females_normal_corMat2 <- females_normal_corMat %>% get_upper_tri %>% as.numeric %>% na.exclude %>% as.numeric
+restGenes1 <- (colors1 != "grey")
+diss_mat1 <- 1 - TOMsimilarityFromExpr( males_tumour[, restGenes1], power = sft_males_tumour$powerEstimate )
+hier_clust1 <- hclust( as.dist(diss_mat1), method="average" )
+diag(diss_mat1) = NA
 
 
 
-thyroid_correlations <- data.frame(
-    males_tumor = males_tumour_corMat2,
-    males_normal = males_normal_corMat2,
-    females_tumor = females_tumour_corMat2,
-    females_normal = females_normal_corMat2) %>%
-    as.tibble() %>%
-    gather(key="data", value="pearson")
-
-
-thyroid_correlations_plot <- ggplot(data=thyroid_correlations, mapping=aes(x=data, y=pearson, fill=data)) +
-    geom_boxplot(outlier.size = 0.5) +
-    theme(axis.text.y = element_text(colour="black", size=13),
-        axis.title.y = element_text(colour="black", size=15),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank()) +
-    labs(x="", y="Pearson correlation coefficient", fill="tissue / gender")
-ggsave("thyroid_correlations_plot.png", plot=thyroid_correlations_plot, path="./plots/")
-unlink("thyroid_correlations_plot.png")
-
-
-thyroid_correlations_densityplot <- ggplot(data=thyroid_correlations, mapping=aes(x=pearson, fill=data, colour=data)) +
-    geom_density(alpha = 0.2) +
-    geom_vline(xintercept=0, color="black", linetype=2, size = 0.3) +
-    theme(axis.text = element_text(colour="black", size=13), axis.title = element_text(colour="black", size=15)) +
-    labs(x="Pearson correlation coefficient", y="Density", fill="tissue / gender")
-ggsave("thyroid_correlations_densityplot.png", plot=thyroid_correlations_densityplot, path="./plots/")
-unlink("thyroid_correlations_densityplot.png")
-
-
-# distance matrix and hierarchical clustering
-males_tumour_corMat_dist <- as.dist(1-males_tumour_corMat)
-males_tumour_corMat_hc <- hclust(males_tumour_corMat_dist, method="average")
-
-males_normal_corMat_dist <- as.dist(1-males_normal_corMat)
-males_normal_corMat_hc <- hclust(males_normal_corMat_dist, method="average")
-
-females_tumour_corMat_dist <- as.dist(1-females_tumour_corMat)
-females_tumour_corMat_hc <- hclust(females_tumour_corMat_dist, method="average")
-
-females_normal_corMat_dist <- as.dist(1-females_normal_corMat)
-females_normal_corMat_hc <- hclust(females_normal_corMat_dist, method="average")
-
-
-
-
-png(file="./plots/thyroid_males_tumour_wgcna_modules_heatmap.png")
-heatmap.2(x=males_tumour_corMat,
-    Rowv=as.dendrogram(males_tumour_corMat_hc),
-    Colv="Rowv",
-    dendrogram="none",
-    symm = T,
-    distfun = NULL,
-    hclustfun = NULL,
-    scale="none",
-    trace="none",
-    key=TRUE,
-    keysize=1.2,
-    symkey=TRUE,
-    key.title = NA,
-    key.xlab = NA,
-    key.ylab = NA,
-    col=colorpanel(50, "blue", "white", "red"),
-    labRow=NA,
-    labCol=NA,
-    ColSideColors = labels2colors(males_tumour_network$colors),
-    RowSideColors = labels2colors(males_tumour_network$colors))
+png(file="./plots/wgcna_networks/thyroid_males_tumour_wgcna_modules_tomplot.png")
+TOMplot( diss_mat1^10, hier_clust1, as.character(colors1[restGenes1]), main = "" )
 dev.off()
 
 
-png(file="./plots/thyroid_males_normal_wgcna_modules_heatmap.png")
-heatmap.2(x=males_normal_corMat,
-    Rowv=as.dendrogram(males_normal_corMat_hc),
-    Colv="Rowv",
-    dendrogram="none",
-    symm = T,
-    distfun = NULL,
-    hclustfun = NULL,
-    scale="none",
-    trace="none",
-    key=TRUE,
-    keysize=1.2,
-    symkey=TRUE,
-    key.title = NA,
-    key.xlab = NA,
-    key.ylab = NA,
-    col=colorpanel(50, "blue", "white", "red"),
-    labRow=NA,
-    labCol=NA,
-    ColSideColors = labels2colors(males_normal_network$colors),
-    RowSideColors = labels2colors(males_normal_network$colors))
-dev.off()
+
+## normal
+colors2 <- labels2colors(males_normal_network$colors)
+
+restGenes2 <- (colors2 != "grey")
+diss_mat2 <- 1 - TOMsimilarityFromExpr( males_normal[, restGenes2], power = sft_males_normal$powerEstimate )
+hier_clust2 <- hclust( as.dist(diss_mat2), method="average" )
+diag(diss_mat2) = NA
 
 
-png(file="./plots/thyroid_females_tumour_wgcna_modules_heatmap.png")
-heatmap.2(x=females_tumour_corMat,
-    Rowv=as.dendrogram(females_tumour_corMat_hc),
-    Colv="Rowv",
-    dendrogram="none",
-    symm = T,
-    distfun = NULL,
-    hclustfun = NULL,
-    scale="none",
-    trace="none",
-    key=TRUE,
-    keysize=1.2,
-    symkey=TRUE,
-    key.title = NA,
-    key.xlab = NA,
-    key.ylab = NA,
-    col=colorpanel(50, "blue", "white", "red"),
-    labRow=NA,
-    labCol=NA,
-    ColSideColors = labels2colors(females_tumour_network$colors),
-    RowSideColors = labels2colors(females_tumour_network$colors))
-dev.off()
 
-
-png(file="./plots/thyroid_females_normal_wgcna_modules_heatmap.png")
-heatmap.2(x=females_normal_corMat,
-    Rowv=as.dendrogram(females_normal_corMat_hc),
-    Colv="Rowv",
-    dendrogram="none",
-    symm = T,
-    distfun = NULL,
-    hclustfun = NULL,
-    scale="none",
-    trace="none",
-    key=TRUE,
-    keysize=1.2,
-    symkey=TRUE,
-    key.title = NA,
-    key.xlab = NA,
-    key.ylab = NA,
-    col=colorpanel(50, "blue", "white", "red"),
-    labRow=NA,
-    labCol=NA,
-    ColSideColors = labels2colors(females_normal_network$colors),
-    RowSideColors = labels2colors(females_normal_network$colors))
+png(file="./plots/wgcna_networks/thyroid_males_normal_wgcna_modules_tomplot.png")
+TOMplot( diss_mat2^10, hier_clust2, as.character(colors2[restGenes2]), main = "" )
 dev.off()
 
 
 
 
+
+
+
+
+# Females
+
+
+## tumour
+colors3 <- labels2colors(females_tumour_network$colors)
+
+restGenes3 <- (colors3 != "grey")
+diss_mat3 <- 1 - TOMsimilarityFromExpr( females_tumour[, restGenes3], power = sft_females_tumour$powerEstimate )
+hier_clust3 <- hclust( as.dist(diss_mat3), method="average" )
+diag(diss_mat3) = NA
+
+
+
+png(file="./plots/wgcna_networks/thyroid_females_tumour_wgcna_modules_tomplot.png")
+TOMplot( diss_mat3^10, hier_clust3, as.character(colors3[restGenes3]), main = "" )
+dev.off()
+
+
+
+## normal
+colors4 <- labels2colors(females_normal_network$colors)
+
+restGenes4 <- (colors4 != "grey")
+diss_mat4 <- 1 - TOMsimilarityFromExpr( females_normal[, restGenes4], power = sft_females_normal$powerEstimate )
+hier_clust4 <- hclust( as.dist(diss_mat4), method="average" )
+diag(diss_mat4) = NA
+
+
+
+png(file="./plots/wgcna_networks/thyroid_females_normal_wgcna_modules_tomplot.png")
+TOMplot( diss_mat4^10, hier_clust4, as.character(colors4[restGenes4]), main = "" )
+dev.off()

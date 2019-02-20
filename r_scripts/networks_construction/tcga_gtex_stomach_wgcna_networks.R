@@ -170,6 +170,10 @@ dev.off()
 
 
 
+write.table(males_tumour, "./files/stomach_males_tumour_fpkm_wgcna.txt", quote = F, sep="\t")
+write.table(males_normal, "./files/stomach_males_normal_fpkm_wgcna.txt", quote = F, sep="\t")
+write.table(females_tumour, "./files/stomach_females_tumour_fpkm_wgcna.txt", quote = F, sep="\t")
+write.table(females_normal, "./files/stomach_females_normal_fpkm_wgcna.txt", quote = F, sep="\t")
+
+
 save(list=ls(), file="./r_workspaces/tcga_gtex_stomach_wgcna_networks.RData")
-
-
