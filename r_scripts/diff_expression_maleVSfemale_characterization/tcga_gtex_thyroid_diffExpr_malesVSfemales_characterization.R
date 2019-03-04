@@ -1,7 +1,7 @@
 # Understanding Gender Differential Susceptibility in Cancer
 
 
-# Characterization of differentially expressed genes between tumour and normal samples
+# Characterization of differentially expressed genes between genders in tumour and normal samples
 
 
 library(tidyverse)

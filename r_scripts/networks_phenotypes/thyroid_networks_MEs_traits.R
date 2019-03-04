@@ -5,7 +5,7 @@
 # TCGA + GTEx data
 
 
-# MEs and sample traits
+# Correlation between MEs and sample phenotypes
 
 
 # -- Thyroid
@@ -23,7 +23,9 @@ load("./r_workspaces/tcga_gtex_thyroid_wgcna_networks.RData")
 
 
 # load networks comparison Male vs Female in TCGA tumours
-thyroid_tumour_gender_diff_networks <- read_tsv("./files/thyroid_tumour_gender_diff_networks.txt")
+color_code <- c("male-specific" = "orange", "female-specific" = "red", "lowly-conserved" = "#deebf7", "moderately-conserved" = "#9ecae1", "highly-conserved" = "#3182bd")
+thyroid_tumour_gender_diff_networks <- read_tsv("./files/thyroid_tumour_gender_diff_networks.txt") %>%
+  mutate(colors = unname(color_code[state]))
 
 
 # load TCGA thyroid metadata
@@ -57,20 +59,39 @@ thyroid_tcga_meta <- inner_join(thyroid_tcga_clinical1, thyroid_tcga_clinical2, 
 tumourME_males <- moduleEigengenes(males_tumour, labels2colors(males_tumour_network$colors))$eigengenes
 tumourME_males <- cbind(sample = rownames(males_tumour), tumourME_males) %>%
   mutate(sample = str_sub(sample, 1, 12)) %>%
-  dplyr::select(-MEgrey)
+  dplyr::select(-MEgrey) %>%
+  inner_join(thyroid_tcga_clinical2, by = "sample") %>%
+  dplyr::rename(ajcc_tumor_stage = ajcc_pathologic_tumor_stage) %>%
+  mutate(ajcc_tumor_stage2 = as.numeric(as.factor(ajcc_tumor_stage)), histological_type2 = as.numeric(as.factor(histological_type)))
+write.table(tumourME_males, "./files/thyroid_tumourME_traits_males.txt", sep="\t", quote=F, row.names = F)
 
 
-tumourME_males <- inner_join(tumourME_males, thyroid_tcga_clinical2, by = "sample") %>%
-  dplyr::select(-c(sample, gender)) %>%
-  mutate(ajcc_pathologic_tumor_stage = as.numeric(as.factor(ajcc_pathologic_tumor_stage)), histological_type = as.numeric(as.factor(histological_type)))
-
-
-tumourME_males_cor <- cor(tumourME_males %>% dplyr::select(OS.time, histological_type, ajcc_pathologic_tumor_stage), tumourME_males %>% dplyr::select(-c(OS.time, histological_type, ajcc_pathologic_tumor_stage)), method = "pearson")
+tumourME_males_cor <- cor(
+  tumourME_males %>% dplyr::select(OS.time, histological_type2, ajcc_tumor_stage2),
+  tumourME_males %>% dplyr::select(starts_with("ME")),
+  method = "pearson")
 
 
 pdf(file="./plots/wgcna_networks_traits/thyroid_tumourME_males_cor.pdf", height=4, width=6)
-par(oma = c(2,0,0,4))
-heatmap.2( x = tumourME_males_cor, trace="none", Rowv=TRUE, Colv=TRUE, dendrogram="both", cexRow=1.2, cexCol = 1.2, key=TRUE, keysize=1, symkey=TRUE, key.title="Pearson's r", key.xlab = NA, key.ylab = NA, density.info = "none", col=bluered(100) )
+par(oma = c(3,0,0,5))
+heatmap.2(
+  x = tumourME_males_cor,
+  trace="none",
+  Rowv=TRUE,
+  Colv=TRUE,
+  dendrogram="both",
+  cexRow=1.2,
+  cexCol = 1.2,
+  key=TRUE,
+  keysize=2,
+  symkey=TRUE,
+  key.title="Pearson's r",
+  key.xlab = NA,
+  key.ylab = NA,
+  density.info = "none",
+  col=bluered(100),
+  ColSideColors = thyroid_tumour_gender_diff_networks %>% filter(network == "males") %>% pull(colors),
+  labRow = c("Overall survival", "Histological type", "AJCC tumor stage"))
 dev.off()
 
 
@@ -78,20 +99,39 @@ dev.off()
 tumourME_females <- moduleEigengenes(females_tumour, labels2colors(females_tumour_network$colors))$eigengenes
 tumourME_females <- cbind(sample = rownames(females_tumour), tumourME_females) %>%
   mutate(sample = str_sub(sample, 1, 12)) %>%
-  dplyr::select(-MEgrey)
+  dplyr::select(-MEgrey) %>%
+  inner_join(thyroid_tcga_clinical2, by = "sample") %>%
+  dplyr::rename(ajcc_tumor_stage = ajcc_pathologic_tumor_stage) %>%
+  mutate(ajcc_tumor_stage2 = as.numeric(as.factor(ajcc_tumor_stage)), histological_type2 = as.numeric(as.factor(histological_type)))
+write.table(tumourME_females, "./files/thyroid_tumourME_traits_females.txt", sep="\t", quote=F, row.names = F)
 
 
-tumourME_females <- inner_join(tumourME_females, thyroid_tcga_clinical2, by = "sample") %>%
-  dplyr::select(-c(sample, gender)) %>%
-  mutate(ajcc_pathologic_tumor_stage = as.numeric(as.factor(ajcc_pathologic_tumor_stage)), histological_type = as.numeric(as.factor(histological_type)))
-
-
-tumourME_females_cor <- cor(tumourME_females %>% dplyr::select(OS.time, histological_type, ajcc_pathologic_tumor_stage), tumourME_females %>% dplyr::select(-c(OS.time, histological_type, ajcc_pathologic_tumor_stage)), method = "pearson")
+tumourME_females_cor <- cor(
+  tumourME_females %>% dplyr::select(OS.time, histological_type2, ajcc_tumor_stage2),
+  tumourME_females %>% dplyr::select(starts_with("ME")),
+  method = "pearson")
 
 
 pdf(file="./plots/wgcna_networks_traits/thyroid_tumourME_females_cor.pdf", height=4, width=6)
-par(oma = c(2,0,0,4))
-heatmap.2( x = tumourME_females_cor, trace="none", Rowv=TRUE, Colv=TRUE, dendrogram="both", cexRow=1.2, cexCol = 1.2, key=TRUE, keysize=1, symkey=TRUE, key.title="Pearson's r", key.xlab = NA, key.ylab = NA, density.info = "none", col=bluered(100) )
+par(oma = c(4,0,0,5))
+heatmap.2(
+  x = tumourME_females_cor,
+  trace="none",
+  Rowv=TRUE,
+  Colv=TRUE,
+  dendrogram="both",
+  cexRow=1.2,
+  cexCol = 1.2,
+  key=TRUE,
+  keysize=2,
+  symkey=TRUE,
+  key.title="Pearson's r",
+  key.xlab = NA,
+  key.ylab = NA,
+  density.info = "none",
+  col=bluered(100),
+  ColSideColors = thyroid_tumour_gender_diff_networks %>% filter(network == "females") %>% pull(colors),
+  labRow = c("Overall survival", "Histological type", "AJCC tumor stage"))
 dev.off()
 
 

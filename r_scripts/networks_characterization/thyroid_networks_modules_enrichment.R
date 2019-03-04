@@ -253,11 +253,11 @@ normal_gender_sp_mod_hyp <- all_modules_enr %>%
       state2 = c("female-specific" = "Female-specific", "male-specific" = "Male-specific", "conserved" = "Conserved"),
       Description = c("GO_BP" = "GO BP", "KEGG" = "KEGG\npathways", "ONCO" = "ONCOGENIC\ngene sets", "POS" = "Positional\ngene sets", "CM" = "Cancer\nmodules"))) +
   theme(
-    axis.title.x=element_text(colour="black", size=16),
+    axis.title.x=element_text(colour="black", size=18),
     axis.title.y=element_blank(),
-    axis.text.y=element_text(colour="black", size=13),
-    axis.text.x=element_text(colour="black", size=14),
-    strip.text = element_text(colour="black", size=15),
+    axis.text.y=element_text(colour="black", size=14),
+    axis.text.x=element_text(colour="black", size=16),
+    strip.text = element_text(colour="black", size=17),
     strip.background = element_blank(),
     legend.text = element_text(colour="black", size=14),
     legend.title = element_text(colour="black", size=16)) +
@@ -265,8 +265,8 @@ normal_gender_sp_mod_hyp <- all_modules_enr %>%
   scale_fill_viridis(option="D", name="Adj p-val\n(-log10)") +
   scale_y_continuous(name = "Number of genes") +
   labs(color="Sex")
-ggsave(filename="thyroid_normal_male_female_spc_hyp.png", plot=normal_gender_sp_mod_hyp, path="./plots/wgcna_modules_enrichment/", width = 10, height = 5)
-ggsave(filename="thyroid_normal_male_female_spc_hyp.pdf", plot=normal_gender_sp_mod_hyp, path="./plots/wgcna_modules_enrichment/", width = 10, height = 5)
+ggsave(filename="thyroid_normal_male_female_spc_hyp.png", plot=normal_gender_sp_mod_hyp, path="./plots/wgcna_modules_enrichment/", width = 12, height = 6)
+ggsave(filename="thyroid_normal_male_female_spc_hyp.pdf", plot=normal_gender_sp_mod_hyp, path="./plots/wgcna_modules_enrichment/", width = 12, height = 6)
 unlink("thyroid_normal_male_female_spc_hyp.png")
 unlink("thyroid_normal_male_female_spc_hyp.pdf")
 
@@ -349,6 +349,31 @@ ggsave(filename="thyroid_normal_male_female_spc_gsea.png", plot=normal_gender_sp
 ggsave(filename="thyroid_normal_male_female_spc_gsea.pdf", plot=normal_gender_sp_mod_gsea, path="./plots/wgcna_modules_enrichment/", width = 7, height = 3)
 unlink("thyroid_normal_male_female_spc_gsea.png")
 unlink("thyroid_normal_male_female_spc_gsea.pdf")
+
+
+
+degs <- read_tsv("./files/thyroid_tumour_normal_signf_degs.txt")
+
+
+thyroid_nets %>%
+  filter(sex == "female", tissue == "normal", state == "female-specific") %>%
+  dplyr::select(geneName, geneType, moduleL, state, kme) %>%
+  inner_join(degs %>% filter(state == "normal_specific" | state == "common") %>% dplyr::select(geneName, deg=state, log2FC_normal, FDR_normal), by = "geneName")  %>%
+  #as.data.frame()
+  group_by(moduleL) %>%
+  count %>%
+  ungroup()
+
+
+
+thyroid_nets %>%
+  filter(sex == "male", tissue == "normal", state == "male-specific") %>%
+  dplyr::select(geneName, geneType, moduleL, state, kme) %>%
+  inner_join(degs %>% filter(state == "normal_specific" | state == "common") %>% dplyr::select(geneName, deg=state, log2FC_normal, FDR_normal), by = "geneName") %>%
+  #as.data.frame()
+  group_by(moduleL) %>%
+  count %>%
+  ungroup()
 
 
 
