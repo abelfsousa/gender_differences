@@ -104,6 +104,7 @@ normal_specific_enrch <- enrch %>%
   filter(state == "normal_specific" & (Description == "GO_BP" | Description == "CM" | Description == "KEGG" | Description == "POS")) %>%
   group_by(tissue, Description) %>%
   top_n(-5, p.adjust) %>%
+  ungroup() %>%
   dplyr::select(tissue, state, Description, ID, geneID) %>%
   mutate(geneName = str_split(geneID, "/")) %>%
   unnest() %>%
@@ -114,11 +115,19 @@ normal_specific_enrch <- enrch %>%
 
 normal_specific_enrch_thyroid <- normal_specific_enrch %>%
   filter(tissue == "Thyroid") %>%
-  ggplot(mapping = aes(x = value, color = ID)) +
-    geom_density() +
+  mutate(ID = str_replace_all(ID, pattern=c("MODULE 45" = "WHOLE BLOOD GENES (MODULE 45)", "MODULE 84" = "HUMORAL IMMUNITY (MODULE 84)", "MODULE 64" = "MEMBRANE RECEPTORS (MODULE 64)", "MODULE 44" = "THYMUS GENES (MODULE 44)", "MODULE 27" = "RECEPTOR ACTIVITY (MODULE 27)") ) ) %>%
+  ggplot(mapping = aes(x = value, color = ID, fill = ID)) +
+    geom_density(alpha = 0.4) +
     geom_vline(xintercept = 0, linetype="dashed", color = "black", size=0.3) +
-    facet_wrap(~ Description) +
-    scale_color_viridis(discrete = TRUE, option = "E") +
+    facet_wrap(
+      ~ Description,
+      ncol = 2,
+      nrow = 2,
+      labeller=labeller(Description = c("GO_BP" = "GO\nbiological processes", "CM" = "Cancer\nmodules", "KEGG" = "KEGG\npathways", "POS" = "Positional\ngene sets"))) +
+    scale_color_viridis(discrete = TRUE, option = "C", name = "Term") +
+    scale_fill_viridis(discrete = TRUE, option = "C", name = "Term") +
+    #scale_colour_brewer(palette = "Set3", name = "Term") +
+    #scale_fill_brewer(palette = "Set3", name = "Term") +
     theme_classic() +
     theme(
       axis.title = element_text(colour="black", size=15),
@@ -137,20 +146,27 @@ unlink("normal_specific_enrch_thyroid.png")
 
 normal_specific_enrch_stomach <- normal_specific_enrch %>%
   filter(tissue == "Stomach") %>%
-  ggplot(mapping = aes(x = value, color = ID)) +
-    geom_density() +
+  mutate(ID = str_replace_all(ID, pattern=c("MODULE 24" = "METABOLISM AND XENOBIOTICS (MODULE 24)", "MODULE 212" = "CATALYTIC ACTIVITIES (MODULE 212)", "MODULE 432" = "CHOLESTEROL BIOSYNTHESIS (MODULE 432)") ) ) %>%
+  ggplot(mapping = aes(x = value, color = ID, fill = ID)) +
+    geom_density(alpha = 0.4) +
     geom_vline(xintercept = 0, linetype="dashed", color = "black", size=0.3) +
-    facet_wrap(~ Description) +
-    scale_color_viridis(discrete = TRUE, option = "E") +
+    facet_wrap(
+      ~ Description,
+      labeller=labeller(Description = c("GO_BP" = "GO\nbiological processes", "CM" = "Cancer\nmodules", "KEGG" = "KEGG\npathways"))) +
+    #scale_color_viridis(discrete = TRUE, option = "C", name = "Term") +
+    #scale_fill_viridis(discrete = TRUE, option = "C", name = "Term") +
+    scale_colour_brewer(palette = "Set1", name = "Term") +
+    scale_fill_brewer(palette = "Set1", name = "Term") +
     theme_classic() +
     theme(
       axis.title = element_text(colour="black", size=15),
-      axis.text.x = element_text(colour="black", size=13),
+      axis.text.x = element_text(colour="black", size=12),
       axis.text.y = element_text(colour="black", size=12),
       legend.text=element_text(colour="black", size=13),
       legend.title=element_text(colour="black", size=15),
       strip.background = element_blank(),
-      strip.text = element_text(colour="black", size=15)) +
+      strip.text = element_text(colour="black", size=15),
+      panel.spacing = unit(1, "lines")) +
     labs(x = "log2FC", y = "Density")
 ggsave(filename="normal_specific_enrch_stomach.png", plot = normal_specific_enrch_stomach, path = "./plots/diff_expression_maleVSfemale_gtex_normal", width=12, height=5)
 unlink("normal_specific_enrch_stomach.png")
@@ -164,20 +180,20 @@ degs_chr_bp_stomach <- degs %>%
   mutate(chrom = fct_relevel(chrom, c("chr1", "chr2", "chr3", "chr4", "chr5", "chr6", "chr7", "chr8", "chr9", "chr10", "chr11", "chr12", "chr13", "chr14", "chr15", "chr16", "chr17", "chr18", "chr19", "chr20", "chr21", "chr22", "chrX", "chrY"))) %>%
   ggplot(mapping = aes(x=chrom, y = ..count.., fill = state)) +
   geom_bar() +
-  scale_fill_manual(values = c("#d8b365", "#a1d76a", "#ca0020"), labels = c("Common", "Normal", "Tumour"), name = "DEG group") +
+  scale_fill_manual(values = c("#bf812d", "#a1d76a", "#ca0020"), labels = c("Common", "Normal", "Tumour"), name = "SBG type") +
   theme_classic() +
   theme(
-    axis.title.x=element_text(colour="black", size=15),
-    axis.title.y=element_blank(),
-    axis.text.y=element_text(colour="black", size=14),
+    axis.title=element_text(colour="black", size=18),
+    axis.text.y=element_text(colour="black", size=16),
     axis.text.x=element_text(colour="black", size=13),
     plot.title = element_blank(),
     strip.text.y = element_text(colour="black", size=10),
     strip.text.x = element_text(colour="black", size=14),
     strip.background = element_blank(),
-    legend.text = element_text(colour="black", size=13),
-    legend.title = element_text(colour="black", size=15)) +
-  scale_y_continuous(name = "Number of genes")
+    legend.text = element_text(colour="black", size=16),
+    legend.title = element_text(colour="black", size=18)) +
+  scale_y_continuous(name = "Number of genes", limits = c(NA, 40)) +
+  scale_x_discrete(name = "Chromosome")
 ggsave(filename="stomach_degs_chr_bp2.png", plot=degs_chr_bp_stomach, path="./plots/diff_expression_maleVSfemale_gtex_normal/", width = 13, height = 3)
 ggsave(filename="stomach_degs_chr_bp2.pdf", plot=degs_chr_bp_stomach, path="./plots/diff_expression_maleVSfemale_gtex_normal/", width = 13, height = 3)
 unlink("stomach_degs_chr_bp2.png")
@@ -190,22 +206,22 @@ degs_chr_bp_thyroid <- degs %>%
   mutate(chrom = fct_relevel(chrom, c("chr1", "chr2", "chr3", "chr4", "chr5", "chr6", "chr7", "chr8", "chr9", "chr10", "chr11", "chr12", "chr13", "chr14", "chr15", "chr16", "chr17", "chr18", "chr19", "chr20", "chr21", "chr22", "chrX", "chrY"))) %>%
   ggplot(mapping = aes(x=chrom, y = ..count.., fill = state)) +
   geom_bar() +
-  scale_fill_manual(values = c("#d8b365", "#a1d76a", "#ca0020"), labels = c("Common", "Normal", "Tumour"), name = "DEG group") +
+  scale_fill_manual(values = c("#bf812d", "#a1d76a", "#ca0020"), labels = c("Common", "Normal", "Tumour"), name = "SBG type") +
   theme_classic() +
   theme(
-    axis.title.x=element_text(colour="black", size=15),
-    axis.title.y=element_blank(),
-    axis.text.y=element_text(colour="black", size=14),
+    axis.title=element_text(colour="black", size=18),
+    axis.text.y=element_text(colour="black", size=16),
     axis.text.x=element_text(colour="black", size=13),
     plot.title = element_blank(),
     strip.text.y = element_text(colour="black", size=10),
     strip.text.x = element_text(colour="black", size=14),
     strip.background = element_blank(),
-    legend.text = element_text(colour="black", size=13),
-    legend.title = element_text(colour="black", size=15)) +
-  scale_y_continuous(name = "Number of genes")
-ggsave(filename="thyroid_degs_chr_bp2.png", plot=degs_chr_bp_thyroid, path="./plots/diff_expression_maleVSfemale_gtex_normal/", width = 14, height = 3)
-ggsave(filename="thyroid_degs_chr_bp2.pdf", plot=degs_chr_bp_thyroid, path="./plots/diff_expression_maleVSfemale_gtex_normal/", width = 14, height = 3)
+    legend.text = element_text(colour="black", size=16),
+    legend.title = element_text(colour="black", size=18)) +
+  scale_y_continuous(name = "Number of genes", limits = c(NA, 120), breaks = seq(0, 120, by = 20)) +
+  scale_x_discrete(name = "Chromosome")
+ggsave(filename="thyroid_degs_chr_bp2.png", plot=degs_chr_bp_thyroid, path="./plots/diff_expression_maleVSfemale_gtex_normal/", width = 15, height = 3)
+ggsave(filename="thyroid_degs_chr_bp2.pdf", plot=degs_chr_bp_thyroid, path="./plots/diff_expression_maleVSfemale_gtex_normal/", width = 15, height = 3)
 unlink("thyroid_degs_chr_bp2.png")
 unlink("thyroid_degs_chr_bp2.pdf")
 

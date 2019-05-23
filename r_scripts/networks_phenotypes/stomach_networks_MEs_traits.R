@@ -28,7 +28,7 @@ stomach_tumour_gender_diff_networks <- read_tsv("./files/stomach_tumour_gender_d
   mutate(colors = unname(color_code[state]))
 
 
-# load TCGA thyroid metadata
+# load TCGA stomach metadata
 stomach_tcga_clinical1 <- read.delim("./files/tcga_stad_meta.txt", row.names = c(1), stringsAsFactors=F) %>%
   rownames_to_column(var = "sample") %>%
   as.tibble() %>%
@@ -67,32 +67,39 @@ tumourME_males <- cbind(sample = rownames(males_tumour), tumourME_males) %>%
 write.table(tumourME_males, "./files/stomach_tumourME_traits_males.txt", sep="\t", quote=F, row.names = F)
 
 
+#male-specific tumour modules
 tumourME_males_cor <- cor(
   tumourME_males %>% dplyr::select(OS.time, histological_type2, ajcc_tumor_stage2, histological_grade2),
-  tumourME_males %>% dplyr::select(starts_with("ME")),
-  method = "pearson")
+  tumourME_males %>% dplyr::select(stomach_tumour_gender_diff_networks %>% filter(state == "male-specific") %>% pull(module) %>% paste("ME", ., sep="")),
+  method = "pearson") %>%
+  abs()
 
 
-pdf(file="./plots/wgcna_networks_traits/stomach_tumourME_males_cor.pdf", height=4, width=9)
-par(oma = c(5,0,0,5))
+pdf(file="./plots/wgcna_networks_traits/stomach_tumourME_males_cor.pdf", height=3, width=5)
+par(oma = c(0,0,0,5))
 heatmap.2(
   x = tumourME_males_cor,
   trace="none",
   Rowv=TRUE,
   Colv=TRUE,
   dendrogram="both",
-  cexRow=1.2,
-  cexCol = 1.2,
+  cexRow=1.3,
+  cexCol = 1.6,
   key=TRUE,
   keysize=2,
-  symkey=TRUE,
+  symkey=FALSE,
   key.title="Pearson's r",
   key.xlab = NA,
   key.ylab = NA,
+  key.par = list(cex.axis = 1),
+  #srtCol=0,
   density.info = "none",
-  col=bluered(100),
-  ColSideColors = stomach_tumour_gender_diff_networks %>% filter(network == "males") %>% pull(colors),
-  labRow = c("Overall survival", "Histological type", "AJCC tumor stage", "Histological grade"))
+  #col=bluered(100),
+  col = colorpanel(100, "white", "orange", "red"),
+  #ColSideColors = stomach_tumour_gender_diff_networks %>% filter(network == "males") %>% pull(colors),
+  #labCol = tumourME_males_cor %>% colnames %>% str_replace("ME", ""),
+  labCol = c("M1", "M3", "M2"),
+  labRow = c("Survival (days)", "Histological type", "Tumour stage", "Histological grade"))
 dev.off()
 
 
@@ -107,10 +114,12 @@ tumourME_females <- cbind(sample = rownames(females_tumour), tumourME_females) %
 write.table(tumourME_females, "./files/stomach_tumourME_traits_females.txt", sep="\t", quote=F, row.names = F)
 
 
+#female modules (all conserved in male modules)
 tumourME_females_cor <- cor(
   tumourME_females %>% dplyr::select(OS.time, histological_type2, ajcc_tumor_stage2, histological_grade2),
   tumourME_females %>% dplyr::select(starts_with("ME")),
-  method = "pearson")
+  method = "pearson") %>%
+  abs()
 
 
 pdf(file="./plots/wgcna_networks_traits/stomach_tumourME_females_cor.pdf", height=4, width=8)

@@ -109,6 +109,13 @@ pca_stomach <- pca_stomach %>%
   inner_join(stomach_tcga_gtex_meta[, c("sample", "gender", "sample_type")], by = "sample") %>%
   mutate(tissue = "Stomach")
 
+pca_thyroid_var <- prcomp(t(thyroid_tcga_gtex_counts), center = TRUE, scale. = TRUE)
+pca_thyroid_var <- tibble(var = pca_thyroid_var$sdev^2, perc_var = (var/sum(var))*100) %>%
+    mutate(pr_comp = fct_inorder(as.factor(paste("PC", seq(1:nrow(.)), sep=""))))
+
+pca_stomach_var <- prcomp(t(stomach_tcga_gtex_counts), center = TRUE, scale. = TRUE)
+pca_stomach_var <- tibble(var = pca_stomach_var$sdev^2, perc_var = (var/sum(var))*100) %>%
+    mutate(pr_comp = fct_inorder(as.factor(paste("PC", seq(1:nrow(.)), sep=""))))
 
 
 
@@ -165,16 +172,16 @@ pca_bp <- rbind(pca_thyroid, pca_stomach) %>%
   geom_point() +
   facet_wrap(~ tissue, scales = "free") +
   scale_color_manual(values=c("#fbb4b9", "#74a9cf"), name="Gender", labels = c("Female", "Male")) +
-  scale_shape_manual(values=c(16, 3, 15), name="Sample", labels = c("GTEx", "TCGA normal", "TCGA tumour")) +
+  scale_shape_manual(values=c(16, 3, 15), name="Data", labels = c("GTEx", "TCGA normal", "TCGA tumour")) +
   theme_classic() +
   theme(
-    axis.title = element_text(colour="black", size=15),
+    axis.title = element_text(colour="black", size=14),
     axis.text = element_text(colour="black", size=13),
     legend.text=element_text(colour="black", size=13),
     legend.title=element_text(colour="black", size=15),
     strip.background = element_blank(),
     strip.text = element_text(colour="black", size=15)) +
-  labs(x = "PC1", y = "PC2")
+  labs(x = "PC1 (Stomach: 19.1%, Thyroid: 32.1%)", y = "PC2 (Stomach: 11.0%, Thyroid: 9.6%)")
 ggsave(filename="pca_thyroid_stomach_samples.pdf", plot=pca_bp, path = "./plots/pre_processing/", width = 8, height = 4)
 unlink("pca_thyroid_stomach_samples.pdf")
 

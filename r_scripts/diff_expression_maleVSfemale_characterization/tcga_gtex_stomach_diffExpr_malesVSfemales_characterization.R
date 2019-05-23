@@ -1,7 +1,7 @@
 # Understanding Gender Differential Susceptibility in Cancer
 
 
-# Characterization of differentially expressed genes between tumour and normal samples
+# Characterization of differentially expressed genes between genders in tumour and normal samples
 
 
 library(tidyverse)
@@ -10,6 +10,7 @@ library(clusterProfiler)
 library(org.Hs.eg.db)
 library(VennDiagram)
 library(viridis)
+library(mygene)
 
 
 
@@ -55,6 +56,19 @@ tumour_normal_signf_degs <- full_join(
 write.table(tumour_normal_signf_degs, "./files/stomach_tumour_normal_signf_degs.txt", sep="\t", quote=F, row.names=F)
 
 
+#gene annotation using MyGene.Info services
+#http://mygene.info/
+#http://mygene.info/metadata/fields
+
+
+tumour_normal_signf_degs_annot <- queryMany(tumour_normal_signf_degs$genes, scopes='ensembl.gene', fields=c("symbol", "name", "summary"), species='human', return.as = "DataFrame") %>%
+  as_tibble()
+tumour_normal_signf_degs_annot <- tumour_normal_signf_degs %>%
+  inner_join(tumour_normal_signf_degs_annot[, c("query", "symbol", "name", "summary")], by = c("genes" = "query", "geneName" = "symbol"))
+
+write.table(tumour_normal_signf_degs_annot, "./files/stomach_tumour_normal_signf_degs_annot.txt", sep="\t", quote=F, row.names=F)
+
+
 
 # Venn Diagram
 males_females_signf_degs_venn <- draw.pairwise.venn(
@@ -64,7 +78,7 @@ males_females_signf_degs_venn <- draw.pairwise.venn(
   scaled = T,
   category = c("", ""),
   lty = rep("blank", 2),
-  fill = c("green", "red"),
+  fill = c("#a1d76a", "#ca0020"),
   alpha = rep(0.5, 2),
   cex = rep(2.5, 3),
   cat.cex = rep(1.5, 2))
@@ -95,20 +109,22 @@ diff_expr_table <- diff_expr_tumour_table %>%
 diff_expr_vp <- ggplot( data = diff_expr_table, mapping = aes(x=logFC, y=-log10(adj.P.Val), colour=state) ) +
   geom_point() +
   #scale_fill_manual(values=c("#D7301F", "#FDCC8A"), name = "Significance") +
-  scale_colour_manual(values=c("#fdbb84", "green", "#d95f02"), na.value="#bdbdbd", labels=c("Common", "Normal-specific", "Tumour-specific", "Not DEGs"), name = "DEG type") +
+  scale_colour_manual(values=c("#bf812d", "#a1d76a", "#ca0020"), na.value="#bdbdbd", labels=c("Common", "Normal-specific", "Tumour-specific", "Not SBG"), name = "SBG type") +
   facet_wrap( ~ tissue, scales = "free") +
   geom_line(aes(x=0), color="black", linetype=2, size = 0.3) +
-  geom_line(aes(x=1), color="black", linetype=2, size = 0.3) +
-  geom_line(aes(x=-1), color="black", linetype=2, size = 0.3) +
+  #geom_line(aes(x=1), color="black", linetype=2, size = 0.3) +
+  #geom_line(aes(x=-1), color="black", linetype=2, size = 0.3) +
   geom_line(aes(y=-log10(0.05)), color="black", linetype=2, size = 0.3) +
   theme_classic() +
-  theme(axis.title = element_text(colour="black", size=18),
+  theme(
+    axis.title = element_text(colour="black", size=18),
     axis.text = element_text(colour="black", size=16),
     legend.text=element_text(colour="black", size=16),
     legend.title=element_text(colour="black", size=18),
     strip.background = element_blank(),
-    strip.text.x = element_text(colour="black", size=18)) +
-  labs(x = "logFC", y = "FDR (-log10)")
+    strip.text.x = element_text(colour="black", size=20)) +
+  scale_x_continuous(limits = c(-10, 10)) +
+  labs(x = "log2FC", y = "FDR (-log10)")
 ggsave(filename="diff_expr_stomach_all_tcga_maleVSfemale.png", plot=diff_expr_vp, path = "./plots/diff_expression_maleVSfemale_gtex_normal/", width=10, height=5)
 unlink("diff_expr_stomach_all_tcga_maleVSfemale.png")
 
@@ -178,6 +194,8 @@ all_diff_genes <- tumour_normal_signf_degs %>%
   unique() %>%
   rowwise() %>%
   mutate(enr = enrich_test(geneName, universe_enr, all_terms, all_terms2, 1, 1)) %>%
+  #other way of doing it (note: with the map function there is no need for rowwise())
+  #mutate(enr = map(geneName, function(x) enrich_test(x, universe_enr, all_terms, all_terms2, 1, 1) )) %>%
   dplyr::select(-geneName) %>%
   unnest()
 write.table(all_diff_genes, "./files/stomach_tumour_normal_degs_enr.txt", sep="\t", quote=F, row.names=F)
@@ -185,9 +203,8 @@ write.table(all_diff_genes, "./files/stomach_tumour_normal_degs_enr.txt", sep="\
 
 
 
-
 tn_enr_bp <- all_diff_genes %>%
-  filter(p.adjust < 0.05) %>%
+  filter(p.adjust < 0.05 & state == "common" & (Description == "GO_BP" | Description == "CM" | Description == "KEGG" | Description == "POS")) %>%
   mutate(log10_p = -log10(p.adjust)) %>%
   group_by(state, Description) %>%
   top_n(5, log10_p) %>%
@@ -217,10 +234,10 @@ tn_enr_bp <- all_diff_genes %>%
   coord_flip() +
   scale_fill_viridis(option="D", name="Adj p-val\n(-log10)") +
   scale_y_continuous(name = "Number of genes")
-ggsave(filename="stomach_tumour_normal_enr_bp.png", plot=tn_enr_bp, path="./plots/diff_expression_maleVSfemale_gtex_normal/", width = 10, height = 9)
-ggsave(filename="stomach_tumour_normal_enr_bp.pdf", plot=tn_enr_bp, path="./plots/diff_expression_maleVSfemale_gtex_normal/", width = 10, height = 9)
-unlink("stomach_tumour_normal_enr_bp.png")
-unlink("stomach_tumour_normal_enr_bp.pdf")
+ggsave(filename="stomach_tumour_normal_enr_bp_common.png", plot=tn_enr_bp, path="./plots/diff_expression_maleVSfemale_gtex_normal/", width = 10, height = 9)
+ggsave(filename="stomach_tumour_normal_enr_bp_common.pdf", plot=tn_enr_bp, path="./plots/diff_expression_maleVSfemale_gtex_normal/", width = 10, height = 9)
+unlink("stomach_tumour_normal_enr_bp_common.png")
+unlink("stomach_tumour_normal_enr_bp_common.pdf")
 
 
 
@@ -230,6 +247,7 @@ tn_enr_bp2 <- all_diff_genes %>%
   group_by(state, Description) %>%
   top_n(5, log10_p) %>%
   ungroup() %>%
+  mutate(ID = str_replace_all(ID, pattern=c("MODULE 24" = "METABOLISM AND XENOBIOTICS (MODULE 24)", "MODULE 212" = "CATALYTIC ACTIVITIES (MODULE 212)", "MODULE 432" = "CHOLESTEROL BIOSYNTHESIS (MODULE 432)") ) ) %>%
   mutate_if(is.character, as.factor) %>%
   mutate(ID = fct_reorder(ID, Count), Description = fct_infreq(Description)) %>%
   ggplot(mapping = aes(x=ID, y = Count, fill = log10_p)) +
@@ -240,25 +258,27 @@ tn_enr_bp2 <- all_diff_genes %>%
     scales = "free",
     labeller=labeller(
       state = c("common" = "Common", "normal_specific" = "Normal-specific"),
-      Description = c("GO_BP" = "GO BP", "KEGG" = "KEGG", "ONCO" = "Onco", "IMMUNO" = "Immunogenic", "POS" = "Positional", "CM" = "Cancer\nmodules"))) +
+      Description = c("GO_BP" = "GO biological processes", "KEGG" = "KEGG", "ONCO" = "Onco", "IMMUNO" = "Immunogenic", "POS" = "Positional", "CM" = "Cancer\nmodules"))) +
   theme(
-    axis.title.x=element_text(colour="black", size=15),
+    axis.title.x=element_text(colour="black", size=16),
     axis.title.y=element_blank(),
-    axis.text.y=element_text(colour="black", size=12),
-    axis.text.x=element_text(colour="black", size=13),
+    axis.text.y=element_text(colour="black", size=13),
+    axis.text.x=element_text(colour="black", size=14),
     plot.title = element_blank(),
     strip.text.y = element_text(colour="black", size=13),
-    strip.text.x = element_text(colour="black", size=14),
+    strip.text.x = element_text(colour="black", size=20),
     strip.background = element_blank(),
     legend.text = element_text(colour="black", size=13),
     legend.title = element_text(colour="black", size=15)) +
   coord_flip() +
   scale_fill_viridis(option="D", name="Adj p-val\n(-log10)") +
-  scale_y_continuous(name = "Number of genes")
-ggsave(filename="stomach_tumour_normal_enr_bp_normal_specific.png", plot=tn_enr_bp2, path="./plots/diff_expression_maleVSfemale_gtex_normal/", width = 8, height = 4)
-ggsave(filename="stomach_tumour_normal_enr_bp_normal_specific.pdf", plot=tn_enr_bp2, path="./plots/diff_expression_maleVSfemale_gtex_normal/", width = 8, height = 4)
+  scale_y_continuous(name = "Number of genes", seq(from = 0,to = 10, by = 2))
+ggsave(filename="stomach_tumour_normal_enr_bp_normal_specific.png", plot=tn_enr_bp2, path="./plots/diff_expression_maleVSfemale_gtex_normal/", width = 8, height = 5)
+ggsave(filename="stomach_tumour_normal_enr_bp_normal_specific.pdf", plot=tn_enr_bp2, path="./plots/diff_expression_maleVSfemale_gtex_normal/", width = 8, height = 5)
 unlink("stomach_tumour_normal_enr_bp_normal_specific.png")
 unlink("stomach_tumour_normal_enr_bp_normal_specific.pdf")
+
+
 
 
 
@@ -323,6 +343,36 @@ compCluster_enrichGO <- compareCluster(
 	readable = TRUE)
 
 dotplot(compCluster_enrichGO, font.size = 20, title = "")
+
+
+
+
+# cancer genes list
+cancer_genes <- read_tsv("./data/Census_allMon_May_13_17_05_42_2019.tsv")
+
+stad_degs_MvsF_cancer_genes <- tumour_normal_signf_degs %>%
+  dplyr::select(geneName, state, log2FC_normal, log2FC_tumour) %>%
+  inner_join(cancer_genes %>% dplyr::select(`Gene Symbol`, `Genome Location`, `Tumour Types(Somatic)`, `Tumour Types(Germline)`, `Cancer Syndrome`, `Role in Cancer`), by = c("geneName" = "Gene Symbol"))
+write.table(stad_degs_MvsF_cancer_genes, "./files/stad_degs_MvsF_cancer_genes.txt", sep="\t", quote=F, row.names=F)
+
+
+
+stad_degs_MvsF_normal_specific_enriched_cancer_genes <- all_diff_genes %>%
+  filter(p.adjust < 0.05 & state == "normal_specific" & (Description == "GO_BP" | Description == "CM" | Description == "KEGG" | Description == "POS")) %>%
+  mutate(log10_p = -log10(p.adjust)) %>%
+  group_by(state, Description) %>%
+  top_n(5, log10_p) %>%
+  ungroup() %>%
+  dplyr::select(state, Description, ID, geneID) %>%
+  mutate(geneID = str_split(geneID, "/")) %>%
+  unnest() %>%
+  group_by(state, geneID) %>%
+  summarise(ID = paste(ID, collapse="/"), Description = paste(unique(Description), collapse="/")) %>%
+  ungroup() %>%
+  inner_join(tumour_normal_signf_degs %>% dplyr::select(geneName, chrom, log2FC_normal), by = c("geneID" = "geneName")) %>%
+  inner_join(cancer_genes %>% dplyr::select(`Gene Symbol`, `Genome Location`, `Tumour Types(Somatic)`, `Tumour Types(Germline)`, `Cancer Syndrome`, `Role in Cancer`), by = c("geneID" = "Gene Symbol")) %>%
+  as.data.frame()
+write.table(stad_degs_MvsF_normal_specific_enriched_cancer_genes, "./files/stad_degs_MvsF_normal_specific_enriched_cancer_genes.txt", sep="\t", quote=F, row.names=F)
 
 
 

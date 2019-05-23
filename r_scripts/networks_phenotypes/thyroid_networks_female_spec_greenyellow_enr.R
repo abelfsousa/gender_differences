@@ -47,13 +47,13 @@ greenyellow_mod_hyp <- all_modules_enr %>%
     space = "free_y",
     labeller=labeller(
       state = c("female-specific" = "Female-specific"),
-      Description = c("GO_BP" = "GO BP", "KEGG" = "KEGG", "ONCO" = "ONCOGENIC\ngene sets", "POS" = "Pos", "CM" = "Cancer\nmodules", "IMMUNO" = "Immunogenic\ngene sets" ))) +
+      Description = c("GO_BP" = "GO biological\nprocesses", "KEGG" = "KEGG\npathways"))) +
   theme(
     axis.title.x=element_text(colour="black", size=16),
     axis.title.y=element_blank(),
     axis.text.y=element_text(colour="black", size=13),
     axis.text.x=element_text(colour="black", size=14),
-    strip.text = element_text(colour="black", size=15),
+    strip.text = element_text(colour="black", size=14),
     strip.background = element_blank(),
     legend.text = element_text(colour="black", size=14),
     legend.title = element_text(colour="black", size=16)) +
@@ -85,7 +85,7 @@ greenyellow_mod_gsea <- all_modules_gsea %>%
     space = "free_y",
     labeller=labeller(
       state2 = c("female-specific" = "Female-specific"),
-      Description = c("GO_BP" = "GO BP", "KEGG" = "KEGG\npathways", "ONCO" = "ONCOGENIC\ngene sets", "POS" = "Positional\ngene sets", "CM" = "Cancer\nmodules"))) +
+      Description = c("GO_BP" = "GO biological\nprocesses", "KEGG" = "KEGG\npathways", "POS" = "Positional\ngene sets", "CM" = "Cancer\nmodules"))) +
   theme(
     axis.title.x=element_text(colour="black", size=15),
     axis.title.y=element_blank(),

@@ -66,14 +66,16 @@ tumourME_males <- cbind(sample = rownames(males_tumour), tumourME_males) %>%
 write.table(tumourME_males, "./files/thyroid_tumourME_traits_males.txt", sep="\t", quote=F, row.names = F)
 
 
+#male modules (all conserved in female modules)
 tumourME_males_cor <- cor(
   tumourME_males %>% dplyr::select(OS.time, histological_type2, ajcc_tumor_stage2),
   tumourME_males %>% dplyr::select(starts_with("ME")),
-  method = "pearson")
+  method = "pearson") %>%
+  abs()
 
 
-pdf(file="./plots/wgcna_networks_traits/thyroid_tumourME_males_cor.pdf", height=4, width=6)
-par(oma = c(3,0,0,5))
+pdf(file="./plots/wgcna_networks_traits/thyroid_tumourME_males_cor.pdf", height=6, width=6)
+#par(oma = c(3,0,0,5))
 heatmap.2(
   x = tumourME_males_cor,
   trace="none",
@@ -106,32 +108,39 @@ tumourME_females <- cbind(sample = rownames(females_tumour), tumourME_females) %
 write.table(tumourME_females, "./files/thyroid_tumourME_traits_females.txt", sep="\t", quote=F, row.names = F)
 
 
+#female-specific tumour modules
 tumourME_females_cor <- cor(
   tumourME_females %>% dplyr::select(OS.time, histological_type2, ajcc_tumor_stage2),
-  tumourME_females %>% dplyr::select(starts_with("ME")),
-  method = "pearson")
+  tumourME_females %>% dplyr::select(thyroid_tumour_gender_diff_networks %>% filter(state == "female-specific") %>% pull(module) %>% paste("ME", ., sep="")),
+  method = "pearson") %>%
+  abs()
 
 
-pdf(file="./plots/wgcna_networks_traits/thyroid_tumourME_females_cor.pdf", height=4, width=6)
-par(oma = c(4,0,0,5))
+pdf(file="./plots/wgcna_networks_traits/thyroid_tumourME_females_cor.pdf", height=3, width=5)
+par(oma = c(0,0,0,5))
 heatmap.2(
   x = tumourME_females_cor,
   trace="none",
   Rowv=TRUE,
   Colv=TRUE,
   dendrogram="both",
-  cexRow=1.2,
-  cexCol = 1.2,
+  cexRow=1.3,
+  cexCol = 1.6,
   key=TRUE,
   keysize=2,
-  symkey=TRUE,
+  symkey=FALSE,
   key.title="Pearson's r",
   key.xlab = NA,
   key.ylab = NA,
+  key.par = list(cex.axis = 1),
+  #srtCol=0,
   density.info = "none",
-  col=bluered(100),
-  ColSideColors = thyroid_tumour_gender_diff_networks %>% filter(network == "females") %>% pull(colors),
-  labRow = c("Overall survival", "Histological type", "AJCC tumor stage"))
+  #col=bluered(100),
+  col = colorpanel(100, "white", "orange", "red"),
+  #ColSideColors = thyroid_tumour_gender_diff_networks %>% filter(network == "females") %>% pull(colors),
+  #labCol = tumourME_females_cor %>% colnames %>% str_replace("ME", ""),
+  labCol = c("M4", "M3", "M1", "M6", "M5", "M2"),
+  labRow = c("Survival (days)", "Histological type", "Tumour stage"))
 dev.off()
 
 

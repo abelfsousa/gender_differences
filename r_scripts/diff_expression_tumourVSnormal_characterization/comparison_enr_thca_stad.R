@@ -39,13 +39,44 @@ comp_susceptible <- bind_rows(
   mutate(suscpt = "more_affected")
 
 
-comparison <- bind_rows(comp_protected, comp_susceptible) %>%
+
+comparison_n <- bind_rows(comp_protected, comp_susceptible) %>%
   filter(Description != "IMMUNO") %>%
   mutate_if(is.character, as.factor) %>%
   mutate(ID = fct_reorder(ID, Count)) %>%
+  group_by(ID) %>%
+  mutate(geneID = str_split(geneID, "/")) %>%
+  mutate(geneID = list(Reduce(intersect, geneID)) ) %>%
+  ungroup() %>%
+  dplyr::select(Description, ID, geneID, suscpt) %>%
+  unique() %>%
+  mutate(n = sapply(geneID, length))
+  #group_by(ID) %>% mutate(n = length(geneID[[1]]))
+  #rowwise() %>% mutate(n = length(geneID))
+
+
+comparison <- bind_rows(comp_protected, comp_susceptible) %>%
+  filter(Description != "IMMUNO") %>%
+  mutate(Description = str_replace_all(Description, "_", " ")) %>%
+  mutate(ID = str_replace_all(ID,
+    pattern=c(
+      "\\bMODULE 46\\b" = "IMMUNE RESPONSE (MODULE 46)",
+      "\\bMODULE 75\\b" = "IMMUNE RESPONSE (MODULE 75)",
+      "\\bMODULE 117\\b" = "SIGNALLING (MODULE 117)",
+      "\\bMODULE 64\\b" = "MEMBRANE RECEPTORS (MODULE 64)",
+      "\\bMODULE 84\\b" = "INFLAMMATORY RESPONSE (MODULE 84)",
+      "\\bMODULE 53\\b" = "CELL LINE EXPRESSED GENES (MODULE 53)") )) %>%
+  mutate_if(is.character, as.factor) %>%
+  mutate(ID = fct_reorder(ID, Count)) %>%
+  group_by(ID) %>%
+  mutate(geneID2 = str_split(geneID, "/")) %>%
+  mutate(geneID2 = list(Reduce(intersect, geneID2)) ) %>%
+  ungroup() %>%
+  mutate(n = sapply(geneID2, length)) %>%
   ggplot(mapping = aes(x=ID, y = Count, fill = log10_p)) +
   geom_bar(stat="identity") +
   geom_text(aes(label=Description, y=7), color="white") +
+  geom_text(aes(label=n), vjust=0.5, hjust=1.5, color="white") +
   theme_classic() +
   facet_grid(suscpt ~ tissue,
     scales = "free",
@@ -58,7 +89,7 @@ comparison <- bind_rows(comp_protected, comp_susceptible) %>%
     axis.text.y=element_text(colour="black", size=12),
     axis.text.x=element_text(colour="black", size=13),
     plot.title = element_blank(),
-    strip.text = element_text(colour="black", size=14),
+    strip.text = element_text(colour="black", size=16),
     strip.background = element_blank(),
     legend.text = element_text(colour="black", size=13),
     legend.title = element_text(colour="black", size=15)) +
@@ -73,30 +104,35 @@ unlink("stomach_thyroid_common_degs_susceptibility.pdf")
 
 
 comparison_immuno <- bind_rows(comp_protected, comp_susceptible) %>%
-  filter(Description == "IMMUNO") %>%
-  mutate_if(is.character, as.factor) %>%
-  mutate(ID = fct_reorder(ID, Count)) %>%
-  mutate(label = as.numeric(ID)) %>%
+  filter(Description == "IMMUNO" & suscpt == "less_affected") %>%
+  group_by(ID) %>%
+  mutate(geneID2 = str_split(geneID, "/")) %>%
+  mutate(geneID2 = list(Reduce(intersect, geneID2)) ) %>%
+  ungroup() %>%
+  mutate(n = sapply(geneID2, length)) %>%
+  mutate(label = as.numeric(as.factor(ID))) %>%
   mutate(ID = paste(ID, label, sep = " / ")) %>%
+  mutate(ID = fct_rev(ID)) %>%
   ggplot(mapping = aes(x=ID, y = Count, fill = log10_p)) +
   geom_bar(stat="identity") +
   geom_text(aes(label=Description, y=6), color="white") +
+  geom_text(aes(label=n), vjust=0.5, hjust=1.5, color="white") +
   theme_classic() +
   facet_grid(suscpt ~ tissue,
     scales = "free",
     space = "free_y",
     labeller=labeller(
-      suscpt = c("less_affected" = "Protected gender", "more_affected" = "Susceptible gender"))) +
+      suscpt = c("less_affected" = "Protected gender"))) +
   theme(
-    axis.title.x=element_text(colour="black", size=15),
+    axis.title.x=element_text(colour="black", size=18),
     axis.title.y=element_blank(),
     axis.text.y=element_text(colour="black", size=12),
-    axis.text.x=element_text(colour="black", size=13),
+    axis.text.x=element_text(colour="black", size=15),
     plot.title = element_blank(),
-    strip.text = element_text(colour="black", size=14),
+    strip.text = element_text(colour="black", size=18),
     strip.background = element_blank(),
-    legend.text = element_text(colour="black", size=13),
-    legend.title = element_text(colour="black", size=15)) +
+    legend.text = element_text(colour="black", size=14),
+    legend.title = element_text(colour="black", size=16)) +
   coord_flip() +
   scale_fill_viridis(option="D", name="Adj p-val\n(-log10)") +
   scale_y_continuous(name = "Number of genes")
@@ -128,7 +164,8 @@ thyroid_degs <- read_tsv("./files/thyroid_males_females_signf_degs.txt") %>%
 stomach_thyroid_degs <- bind_rows(stomach_degs, thyroid_degs)
 
 
-comp_distribution <- comp$data %>%
+comp_distribution <- comparison$data %>%
+  dplyr::select(-geneID2, -n) %>%
   mutate(geneID = str_split(geneID, "/")) %>%
   unnest() %>%
   dplyr::select(ID, tissue, suscpt, state, geneID) %>%
@@ -142,16 +179,16 @@ comp_distribution <- comp$data %>%
   facet_grid( ~ ID,
     scales = "free",
     labeller=labeller(
-      ID = c("CELLULAR RESPONSE TO CYTOKINE STIMULUS" = "CYTOKINE\nRESPONSE",
+      ID = c("CELLULAR RESPONSE TO CYTOKINE STIMULUS" = "CELL RESP\nCYTOKINES",
       "CELL CELL ADHESION" = "CELL CELL\nADHESION",
       "SINGLE ORGANISM CELL ADHESION" = "SINGLE ORG\nADHESION",
-      "PKCA DN.V1 UP" = "PKCA",
-      "MODULE 75" = "MODULE\n75",
-      "MODULE 46" = "MODULE\n46",
-      "MODULE 84" = "MODULE\n84",
-      "MODULE 64" = "MODULE\n64",
-      "MODULE 117" = "MODULE\n117",
-      "MODULE 53" = "MODULE\n53"))) +
+      "PKCA DN.V1 UP" = "PKCA\nDN.V1 UP",
+      "IMMUNE RESPONSE (MODULE 75)" = "MODULE\n75",
+      "IMMUNE RESPONSE (MODULE 46)" = "MODULE\n46",
+      "INFLAMMATORY RESPONSE (MODULE 84)" = "MODULE\n84",
+      "MEMBRANE RECEPTORS (MODULE 64)" = "MODULE\n64",
+      "SIGNALLING (MODULE 117)" = "MODULE\n117",
+      "CELL LINE EXPRESSED GENES (MODULE 53)" = "MODULE\n53"))) +
   theme(
     axis.title=element_text(colour="black", size=18),
     axis.text.y=element_text(colour="black", size=15),
@@ -160,19 +197,20 @@ comp_distribution <- comp$data %>%
     plot.title = element_blank(),
     strip.text = element_text(colour="black", size=13),
     strip.background = element_blank(),
-    legend.text = element_text(colour="black", size=15),
+    legend.text = element_text(colour="black", size=16),
     legend.title = element_text(colour="black", size=18)) +
   scale_y_continuous(name = "log2FC") +
   scale_x_discrete(name = "Enriched term") +
-  scale_fill_manual(name = "Cancer", values = c("#d8b365", "#5ab4ac"))
-ggsave(filename="stomach_thyroid_comp_distribution.png", plot=comp_distribution, path="./plots/thyroid_stomach_tumourVSnormal/", width = 12, height = 4)
-ggsave(filename="stomach_thyroid_comp_distribution.pdf", plot=comp_distribution, path="./plots/thyroid_stomach_tumourVSnormal/", width = 12, height = 4)
+  scale_fill_manual(name = "Cancer", values = c("#d95f02", "#7570b3"))
+ggsave(filename="stomach_thyroid_comp_distribution.png", plot=comp_distribution, path="./plots/thyroid_stomach_tumourVSnormal/", width = 14, height = 5)
+ggsave(filename="stomach_thyroid_comp_distribution.pdf", plot=comp_distribution, path="./plots/thyroid_stomach_tumourVSnormal/", width = 14, height = 5)
 unlink("stomach_thyroid_comp_distribution.png")
 unlink("stomach_thyroid_comp_distribution.pdf")
 
 
 
 comp_distribution_immuno <- comparison_immuno$data %>%
+  dplyr::select(-geneID2, -n) %>%
   mutate(geneID = str_split(geneID, "/")) %>%
   unnest() %>%
   dplyr::select(ID, label, tissue, suscpt, state, geneID) %>%
@@ -191,11 +229,11 @@ comp_distribution_immuno <- comparison_immuno$data %>%
     plot.title = element_blank(),
     strip.text = element_text(colour="black", size=13),
     strip.background = element_blank(),
-    legend.text = element_text(colour="black", size=15),
+    legend.text = element_text(colour="black", size=16),
     legend.title = element_text(colour="black", size=18)) +
   scale_y_continuous(name = "log2FC") +
   scale_x_discrete(name = "Enriched term") +
-  scale_fill_manual(name = "Cancer", values = c("#d8b365", "#5ab4ac"))
+  scale_fill_manual(name = "Cancer", values = c("#d95f02", "#7570b3"))
 ggsave(filename="stomach_thyroid_comp_distribution_immuno.png", plot=comp_distribution_immuno, path="./plots/thyroid_stomach_tumourVSnormal/", width = 12, height = 4)
 ggsave(filename="stomach_thyroid_comp_distribution_immuno.pdf", plot=comp_distribution_immuno, path="./plots/thyroid_stomach_tumourVSnormal/", width = 12, height = 4)
 unlink("stomach_thyroid_comp_distribution_immuno.png")
@@ -203,12 +241,6 @@ unlink("stomach_thyroid_comp_distribution_immuno.pdf")
 
 
 
-x <- comparison$data %>%
-  group_by(ID) %>%
-  mutate(geneID = str_split(geneID, "/")) %>%
-  mutate(geneID = list(Reduce(intersect, geneID)) ) %>%
-  dplyr::select(Description, ID, geneID, suscpt) %>%
-  unique()
 
 
 

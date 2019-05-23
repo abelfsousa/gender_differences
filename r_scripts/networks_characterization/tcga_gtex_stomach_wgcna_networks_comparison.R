@@ -78,6 +78,50 @@ stomach_tumour_gender_diff_networks <- bind_rows(tumour_male_modules, tumour_fem
 write.table(stomach_tumour_gender_diff_networks, "./files/stomach_tumour_gender_diff_networks.txt", quote=F, sep="\t", row.names=F)
 
 
+# topology analysis
+get_values <- function(ind1, ind2, mat, flag){
+  values = c()
+  if(flag == 1){
+    for(i in 1:length(ind2)){
+      values = c(values, mat[ind2[i], ind1[i]])
+    }
+  }
+  else if(flag == 2){
+    for(i in 1:length(ind2)){
+      values = c(values, mat[ind1[i], ind2[i]])
+    }
+  }
+  else(stop("unknown flag"))
+  return(values)
+}
+
+tumour_male_modules2 <- tumour_male_modules %>%
+  mutate(indexes1 = apply(males_females_tumour_comparison$corTable1, 1, function(x) which(x == max(x)))) %>%
+  unnest() %>%
+  mutate(indexes2 = as.numeric(as.factor(module))) %>%
+  mutate(cor.kME = get_values(indexes1, indexes2, males_females_tumour_comparison$corTable2, 1)) %>%
+  group_by(network, module, state) %>%
+  summarise(cor.kME = max(cor.kME)) %>%
+  ungroup() %>%
+  mutate(topology = if_else(cor.kME > 0.7, "preserved", "not_preserved")) %>%
+  mutate(topology = replace(topology, (topology == "not_preserved" & state == "male-specific"), NA))
+
+
+tumour_female_modules2 <- tumour_female_modules %>%
+  mutate(indexes1 = apply(males_females_tumour_comparison$corTable1, 2, function(x) which(x == max(x)))) %>%
+  unnest() %>%
+  mutate(indexes2 = as.numeric(as.factor(module))) %>%
+  mutate(cor.kME = get_values(indexes1, indexes2, males_females_tumour_comparison$corTable2, 2)) %>%
+  group_by(network, module, state) %>%
+  summarise(cor.kME = max(cor.kME)) %>%
+  ungroup() %>%
+  mutate(topology = if_else(cor.kME > 0.7, "preserved", "not_preserved")) %>%
+  mutate(topology = replace(topology, (topology == "not_preserved" & state == "female-specific"), NA))
+
+stomach_tumour_gender_diff_networks_topology <- bind_rows(tumour_male_modules2, tumour_female_modules2)
+write.table(stomach_tumour_gender_diff_networks_topology, "./files/stomach_tumour_gender_diff_networks_topology.txt", quote=F, sep="\t", row.names=F)
+
+
 
 
 
@@ -130,3 +174,32 @@ normal_female_modules <- tibble(network = "females",
 
 stomach_normal_gender_diff_networks <- bind_rows(normal_male_modules, normal_female_modules)
 write.table(stomach_normal_gender_diff_networks, "./files/stomach_normal_gender_diff_networks.txt", quote=F, sep="\t", row.names=F)
+
+
+
+# topology analysis
+normal_male_modules2 <- normal_male_modules %>%
+  mutate(indexes1 = apply(males_females_normal_comparison$corTable1, 1, function(x) which(x == max(x)))) %>%
+  unnest() %>%
+  mutate(indexes2 = as.numeric(as.factor(module))) %>%
+  mutate(cor.kME = get_values(indexes1, indexes2, males_females_normal_comparison$corTable2, 1)) %>%
+  group_by(network, module, state) %>%
+  summarise(cor.kME = max(cor.kME)) %>%
+  ungroup() %>%
+  mutate(topology = if_else(cor.kME > 0.7, "preserved", "not_preserved")) %>%
+  mutate(topology = replace(topology, (topology == "not_preserved" & state == "male-specific"), NA))
+
+
+normal_female_modules2 <- normal_female_modules %>%
+  mutate(indexes1 = apply(males_females_normal_comparison$corTable1, 2, function(x) which(x == max(x)))) %>%
+  unnest() %>%
+  mutate(indexes2 = as.numeric(as.factor(module))) %>%
+  mutate(cor.kME = get_values(indexes1, indexes2, males_females_normal_comparison$corTable2, 2)) %>%
+  group_by(network, module, state) %>%
+  summarise(cor.kME = max(cor.kME)) %>%
+  ungroup() %>%
+  mutate(topology = if_else(cor.kME > 0.7, "preserved", "not_preserved")) %>%
+  mutate(topology = replace(topology, (topology == "not_preserved" & state == "female-specific"), NA))
+
+stomach_normal_gender_diff_networks_topology <- bind_rows(normal_male_modules2, normal_female_modules2)
+write.table(stomach_normal_gender_diff_networks_topology, "./files/stomach_normal_gender_diff_networks_topology.txt", quote=F, sep="\t", row.names=F)

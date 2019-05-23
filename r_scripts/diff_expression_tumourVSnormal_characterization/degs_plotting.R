@@ -7,6 +7,7 @@
 library(tidyverse)
 library(RColorBrewer)
 library(clusterProfiler)
+library(ggpubr)
 
 
 # load TCGA annotation
@@ -145,3 +146,65 @@ horm_recpt_plot2 <- fpkm %>%
     labs(x = "Hormone receptor DEG", y = "FPKM (log2)", title = "Stomach")
 ggsave(filename="degs_TvsN_hormone_recpt_stad.png", plot=horm_recpt_plot2, path = "./plots/diff_expression_tumourVSnormal/", width=8, height=4)
 unlink("degs_TvsN_hormone_recpt_stad.png")
+
+
+
+
+
+
+# PLOTTING OF COMPARE CLUSTER ENRICHMENT RESULTS
+
+
+compCluster <- read_tsv("./files/thyroid_male_female_compCluster_GO.txt") %>%
+  filter(Description %in% c("regulation of cell activation", "regulation of leukocyte activation", "lymphocyte activation", "positive regulation of cell activation", "leukocyte cell-cell adhesion", "T cell activation", "lymphocyte differentiation")) %>%
+  dplyr::select(Cluster, Description, geneID) %>%
+  mutate(geneID = str_split(geneID, "/")) %>%
+  unnest()
+
+
+
+up_normal_female_up_tumour_male <- fpkm %>%
+  filter(tissue == "Thyroid") %>%
+  inner_join(compCluster, by = c("gene" = "geneID")) %>%
+  filter(!(Cluster == "up tumour male" & gender == "female")) %>%
+  filter(!(Cluster == "up normal female" & gender == "male")) %>%
+  ggplot(mapping = aes(x = gender, y = fpkm, fill = sample_type, linetype = Cluster)) +
+    geom_boxplot(outlier.size = 0.5) +
+    facet_grid(. ~ Description) +
+    #stat_compare_means( comparisons = list(c(1, 2)) ) +
+    theme_classic() +
+    theme(
+      axis.title = element_text(colour="black", size=14),
+      axis.text.x = element_text(colour="black", size=10),
+      axis.text.y = element_text(colour="black", size=10),
+      legend.text=element_text(colour="black", size=10),
+      legend.title=element_text(colour="black", size=14),
+      strip.background = element_blank(),
+      strip.text.x = element_text(colour="black", size=9)) +
+    labs(x = "", y = "FPKM (log2)", title = "")
+#x$layers[[2]]$aes_params$textsize <- 0.1
+ggsave(filename="up_normal_female_up_tumour_male.png", plot=up_normal_female_up_tumour_male, path = "./plots/thyroid_stomach_tumourVSnormal/", width=14, height=4)
+unlink("up_normal_female_up_tumour_male.png")
+
+
+up_normal_female <- fpkm %>%
+  filter(tissue == "Thyroid") %>%
+  inner_join(compCluster, by = c("gene" = "geneID")) %>%
+  filter(Cluster != "up tumour male") %>%
+  ggplot(mapping = aes(x = gender, y = fpkm, fill = sample_type, linetype = Cluster)) +
+    geom_boxplot(outlier.size = 0.5) +
+    facet_grid(. ~ Description) +
+    #stat_compare_means( comparisons = list(c(1, 2)) ) +
+    theme_classic() +
+    theme(
+      axis.title = element_text(colour="black", size=14),
+      axis.text.x = element_text(colour="black", size=10),
+      axis.text.y = element_text(colour="black", size=10),
+      legend.text=element_text(colour="black", size=10),
+      legend.title=element_text(colour="black", size=14),
+      strip.background = element_blank(),
+      strip.text.x = element_text(colour="black", size=9)) +
+    labs(x = "", y = "FPKM (log2)", title = "")
+#x$layers[[2]]$aes_params$textsize <- 0.1
+ggsave(filename="up_normal_female.png", plot=up_normal_female, path = "./plots/thyroid_stomach_tumourVSnormal/", width=14, height=4)
+unlink("up_normal_female.png")

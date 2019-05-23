@@ -78,7 +78,7 @@ males_females_signf_degs_venn <- draw.pairwise.venn(
   scaled = T,
 	category = c("", ""),
 	lty = rep("blank", 2),
-	fill = c("#3182bd", "#D7301F"),
+	fill = c("#3182bd", "#dd1c77"),
 	alpha = rep(0.5, 2),
 	cex = rep(2.5, 3),
 	cat.cex = rep(1.5, 2))
@@ -153,7 +153,7 @@ diff_expr_vp <- ggplot( data = diff_expr_table, mapping = aes(x=logFC, y=-log10(
     geom_point(pch = 20) +
     #scale_fill_manual(values=c("#D7301F", "#FDCC8A"), name = "Significance") +
     #scale_colour_manual(values=c("#3182bd", "green", "yellow"), na.value="#bdbdbd", labels=c("Common", "Female-specific", "Male-specific", "Not DEGs"), name = "DEG type") +
-    scale_colour_manual(values=c("#fdbb84", "#D7301F", "#3182bd"), na.value="#bdbdbd", labels=c("Common", "Female-specific", "Male-specific", "Not DEGs"), name = "DEG type") +
+    scale_colour_manual(values=c("#fdbb84", "#dd1c77", "#3182bd"), na.value="#bdbdbd", labels=c("Common", "Female-specific", "Male-specific", "Not DEG"), name = "DEG type") +
     facet_wrap( ~ sex, scales = "free") +
     geom_line(aes(x=0), color="black", linetype=2, size = 0.3) +
     geom_line(aes(x=1), color="black", linetype=2, size = 0.3) +
@@ -166,7 +166,7 @@ diff_expr_vp <- ggplot( data = diff_expr_table, mapping = aes(x=logFC, y=-log10(
       legend.title=element_text(colour="black", size=18),
       strip.background = element_blank(),
       strip.text.x = element_text(colour="black", size=18)) +
-    labs(x = "logFC", y = "FDR (-log10)") +
+    labs(x = "log2FC", y = "FDR (-log10)") +
     guides(color = guide_legend(override.aes = list(size=4)))
 ggsave(filename="diff_expr_thyroid_all_tcga_tumourVSnormal.png", plot=diff_expr_vp, path = "./plots/diff_expression_tumourVSnormal/", width=10, height=5)
 unlink("diff_expr_thyroid_all_tcga_tumourVSnormal.png")
@@ -237,11 +237,25 @@ write.table(all_diff_genes, "./files/thyroid_male_female_degs_enr.txt", sep="\t"
 
 
 mf_enr_bp <- all_diff_genes %>%
-  filter(p.adjust < 0.05) %>%
+  filter(p.adjust < 0.05 & !(Description %in% c("POS", "IMMUNO", "ONCO"))) %>%
   mutate(log10_p = -log10(p.adjust)) %>%
   group_by(state, Description) %>%
   top_n(5, log10_p) %>%
   ungroup() %>%
+  mutate(ID = str_replace_all(ID,
+    pattern=c(
+      "MODULE 88" = "METABOLIC AND XENOBIOTIC RESPONSE GENES (MODULE 88)",
+      "MODULE 55" = "EXTRACELLULAR SPACE (MODULE 55)",
+      "\\bMODULE 6\\b" = "TRACHEA GENES (MODULE 6)",
+      "MODULE 12" = "SPINAL CORD GENES (MODULE 12)",
+      "\\bMODULE 2\\b" = "DORSAL ROOT GANGLIA GENES (MODULE 2)",
+      "MODULE 45" = "WHOLE BLOOD GENES (MODULE 45)",
+      "MODULE 84" = "INFLAMMATORY RESPONSE (MODULE 84)",
+      "\\bMODULE 27\\b" = "RECEPTOR ACTIVITY (MODULE 27)",
+      "\\bMODULE 64\\b" = "MEMBRANE RECEPTORS (MODULE 64)",
+      "MODULE 75" = "IMMUNE RESPONSE (MODULE 75)",
+      "MODULE 46" = "IMMUNE RESPONSE (MODULE 46)",
+      "MODULE 44" = "THYMUS (MODULE 44)") )) %>%
   mutate_if(is.character, as.factor) %>%
   mutate(ID = fct_reorder(ID, Count)) %>%
   ggplot(mapping = aes(x=ID, y = Count, fill = log10_p)) +
@@ -253,27 +267,25 @@ mf_enr_bp <- all_diff_genes %>%
     labeller=labeller(
       state = c("common" = "Common", "female_specific" = "Female-specific", "male_specific" = "Male-specific"),
       Description = c(
-      "GO_BP" = "GO-BP",
-      "KEGG" = "KEGG pathways",
-      "CM" = "Cancer modules",
-      "ONCO" = "Oncogenic",
-      "IMMUNO" = "Immunogenic",
-      "POS" = "Positional"))) +
+      "GO_BP" = "GO biological\nprocesses",
+      "KEGG" = "KEGG\npathways",
+      "CM" = "Cancer modules"))) +
   theme(
     axis.title.x=element_text(colour="black", size=20),
     axis.title.y=element_blank(),
     axis.text.y=element_text(colour="black", size=15),
     axis.text.x=element_text(colour="black", size=16),
     plot.title = element_blank(),
-    strip.text = element_text(colour="black", size=20),
+    strip.text = element_text(colour="black", size=18),
     strip.background = element_blank(),
     legend.text = element_text(colour="black", size=15),
-    legend.title = element_text(colour="black", size=20)) +
+    legend.title = element_text(colour="black", size=20),
+    panel.spacing = unit(1.5, "lines")) +
   coord_flip() +
   scale_fill_viridis(option="D", name="Adj p-val\n(-log10)") +
   scale_y_continuous(name = "Number of genes")
-ggsave(filename="thyroid_male_female_enr_bp.png", plot=mf_enr_bp, path="./plots/diff_expression_tumourVSnormal/", width = 15, height = 21)
-ggsave(filename="thyroid_male_female_enr_bp.pdf", plot=mf_enr_bp, path="./plots/diff_expression_tumourVSnormal/", width = 15, height = 21)
+ggsave(filename="thyroid_male_female_enr_bp.png", plot=mf_enr_bp, path="./plots/diff_expression_tumourVSnormal/", width = 15, height = 10)
+ggsave(filename="thyroid_male_female_enr_bp.pdf", plot=mf_enr_bp, path="./plots/diff_expression_tumourVSnormal/", width = 15, height = 10)
 unlink("thyroid_male_female_enr_bp.png")
 unlink("thyroid_male_female_enr_bp.pdf")
 

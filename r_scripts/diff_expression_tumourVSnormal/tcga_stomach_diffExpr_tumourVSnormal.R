@@ -4,7 +4,7 @@
 # Tumour vs Normal differential expression by gender
 # TCGA + GTEx data
 
-# Differential expression using limma R package
+# Differential expression using limma and edgeR R packages
 
 
 library(tidyverse)

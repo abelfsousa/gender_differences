@@ -237,6 +237,12 @@ unlink("thyroid_tumour_male_female_spc_hyp.pdf")
 normal_gender_sp_mod_hyp <- all_modules_enr %>%
   filter(p.adjust < 0.05 & tissue == "normal" & (state2 == "female-specific" | state2 == "male-specific" ) ) %>%
   filter(Description %in% c("GO_BP", "CM", "KEGG", "POS") ) %>%
+  mutate(ID = str_replace_all(ID,
+    pattern=c(
+      "MODULE 160" = "tRNA SYNTHESIS (MODULE 160)",
+      "MODULE 133" = "tRNA SYNTHESIS (MODULE 133)",
+      "MODULE 35" = "tRNA LIGASE ACTIVITY (MODULE 35)",
+      "MODULE 110" = "tRNA LIGASE ACTIVITY (MODULE 110)") )) %>%
   mutate(log10_p = -log10(p.adjust)) %>%
   group_by(state2, Description) %>%
   top_n(5, log10_p) %>%
@@ -251,7 +257,7 @@ normal_gender_sp_mod_hyp <- all_modules_enr %>%
     space = "free_y",
     labeller=labeller(
       state2 = c("female-specific" = "Female-specific", "male-specific" = "Male-specific", "conserved" = "Conserved"),
-      Description = c("GO_BP" = "GO BP", "KEGG" = "KEGG\npathways", "ONCO" = "ONCOGENIC\ngene sets", "POS" = "Positional\ngene sets", "CM" = "Cancer\nmodules"))) +
+      Description = c("GO_BP" = "GO biological\nprocesses", "KEGG" = "KEGG\npathways", "POS" = "Positional\ngene sets", "CM" = "Cancer\nmodules"))) +
   theme(
     axis.title.x=element_text(colour="black", size=18),
     axis.title.y=element_blank(),
@@ -260,7 +266,8 @@ normal_gender_sp_mod_hyp <- all_modules_enr %>%
     strip.text = element_text(colour="black", size=17),
     strip.background = element_blank(),
     legend.text = element_text(colour="black", size=14),
-    legend.title = element_text(colour="black", size=16)) +
+    legend.title = element_text(colour="black", size=16),
+    panel.spacing = unit(1.5, "lines")) +
   coord_flip() +
   scale_fill_viridis(option="D", name="Adj p-val\n(-log10)") +
   scale_y_continuous(name = "Number of genes") +

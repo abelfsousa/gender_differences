@@ -47,13 +47,13 @@ skyblue_mod_hyp <- all_modules_enr %>%
     space = "free_y",
     labeller=labeller(
       state = c("male-specific" = "Male-specific"),
-      Description = c("GO_BP" = "GO BP", "KEGG" = "KEGG", "ONCO" = "ONCOGENIC\ngene sets", "POS" = "Pos", "CM" = "Cancer\nmodules", "IMMUNO" = "Immunogenic\ngene sets" ))) +
+      Description = c("GO_BP" = "GO biological\nprocesses", "KEGG" = "KEGG", "ONCO" = "ONCOGENIC\ngene sets", "POS" = "Genomic\npositions", "CM" = "Cancer\nmodules", "IMMUNO" = "Immunogenic\ngene sets" ))) +
   theme(
     axis.title.x=element_text(colour="black", size=16),
     axis.title.y=element_blank(),
     axis.text.y=element_text(colour="black", size=13),
     axis.text.x=element_text(colour="black", size=14),
-    strip.text = element_text(colour="black", size=15),
+    strip.text = element_text(colour="black", size=14),
     strip.background = element_blank(),
     legend.text = element_text(colour="black", size=14),
     legend.title = element_text(colour="black", size=16)) +

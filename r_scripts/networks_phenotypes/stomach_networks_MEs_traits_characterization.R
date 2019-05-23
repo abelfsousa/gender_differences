@@ -28,7 +28,7 @@ set.seed(123)
 males_tumour_modules <- read_tsv("./files/stomach_males_tumour_modules.txt")
 
 
-# load MEs and traits for female tumours
+# load MEs and traits for male tumours
 tumourME_males <- read_tsv("./files/stomach_tumourME_traits_males.txt")
 
 
@@ -37,6 +37,9 @@ stomach_males_fpkm <- read.table("./files/stomach_males_tumour_fpkm_wgcna.txt", 
 stomach_males_fpkm <- t(stomach_males_fpkm)
 colnames(stomach_males_fpkm) <- substr(colnames(stomach_males_fpkm), 1, 12)
 
+stomach_females_fpkm <- read.table("./files/stomach_females_tumour_fpkm_wgcna.txt", sep="\t", h=T)
+stomach_females_fpkm <- t(stomach_females_fpkm)
+colnames(stomach_females_fpkm) <- substr(colnames(stomach_females_fpkm), 1, 12)
 
 
 # load TCGA clinical data
@@ -45,10 +48,18 @@ stomach_tcga_clinical <- fread("./data/tcga/tcga_clinical_data.txt") %>%
   mutate(bcr_patient_barcode = str_replace_all(bcr_patient_barcode, "-", ".")) %>%
   filter(type == "STAD") %>%
   dplyr::select(sample = bcr_patient_barcode, gender, OS, OS.time, histological_type, ajcc_pathologic_tumor_stage, histological_grade) %>%
-  filter(!(histological_type %in% c("[Discrepancy]", "[Not Available]")) & !(ajcc_pathologic_tumor_stage %in% c("[Discrepancy]", "[Not Available]"))) %>%
+  filter(!(histological_type %in% c("[Discrepancy]", "[Not Available]", "Stomach, Adenocarcinoma, Not Otherwise Specified (NOS)")) & !(ajcc_pathologic_tumor_stage %in% c("[Discrepancy]", "[Not Available]"))) %>%
   filter(!is.na(OS.time)) %>%
   filter(sample %in% tumourME_males$sample)
 
+stomach_tcga_clinical_females <- fread("./data/tcga/tcga_clinical_data.txt") %>%
+  as.tibble() %>%
+  mutate(bcr_patient_barcode = str_replace_all(bcr_patient_barcode, "-", ".")) %>%
+  filter(type == "STAD") %>%
+  dplyr::select(sample = bcr_patient_barcode, gender, OS, OS.time, histological_type, ajcc_pathologic_tumor_stage, histological_grade) %>%
+  filter(!(histological_type %in% c("[Discrepancy]", "[Not Available]", "Stomach, Adenocarcinoma, Not Otherwise Specified (NOS)")) & !(ajcc_pathologic_tumor_stage %in% c("[Discrepancy]", "[Not Available]"))) %>%
+  filter(!is.na(OS.time)) %>%
+  filter(sample %in% colnames(stomach_females_fpkm))
 
 
 
@@ -56,11 +67,13 @@ stomach_tcga_clinical <- fread("./data/tcga/tcga_clinical_data.txt") %>%
 # male-specific tumour module correlated with histological type
 # select hub genes (kme >= 0.8)
 skyblue <- males_tumour_modules %>%
-  filter(moduleL == "skyblue", kme >= 0.8)
+  filter(moduleL == "skyblue", abs(kme) >= 0.8)
 
 
 # select hub genes and samples used for correlation between eigenenes and histological type
 # test for expression differences between histological types using a kruskal wallis test
+
+#males
 skyblue_genes <- stomach_males_fpkm[skyblue$genes_ens, tumourME_males$sample]
 skyblue_genes <- apply(skyblue_genes, 1, function(x) kruskal.test(as.numeric(x), as.factor(tumourME_males$histological_type))$p.value) %>%
   as.data.frame() %>%
@@ -81,38 +94,135 @@ skyblue_genes_expr <- stomach_males_fpkm %>%
   arrange(kruskal_pval)
 
 
+skyblue_genes_expr_c <- skyblue_genes_expr %>%
+  filter(geneName %in% c("HSP90AB1", "XPO5", "POLR1C", "MAD2L1BP", "MED20")) %>%
+  group_by(gene, geneName, kruskal_pval, histological_type) %>%
+  summarise(counts = n()) %>%
+  ungroup() %>%
+  mutate_if(is.character, as.factor) %>%
+  mutate(geneName = fct_reorder(geneName, kruskal_pval))
 
 
 
-# plot boxplot for top 5 genes
+#females
+skyblue_genes_females <- stomach_females_fpkm[skyblue$genes_ens, stomach_tcga_clinical_females$sample]
+skyblue_genes_females <- apply(skyblue_genes_females, 1, function(x) kruskal.test(as.numeric(x), as.factor(stomach_tcga_clinical_females$histological_type))$p.value) %>%
+  as.data.frame() %>%
+  setNames(c("kruskal_pval")) %>%
+  rownames_to_column(var = "gene") %>%
+  as.tibble() %>%
+  arrange(kruskal_pval) %>%
+  inner_join(skyblue[, c("genes_ens", "geneName", "geneType", "chrom")], by=c("gene" = "genes_ens"))
+
+
+skyblue_genes_females_expr <- stomach_females_fpkm %>%
+  as.data.frame() %>%
+  rownames_to_column(var = "gene") %>%
+  gather(key = "sample", value = "fpkm", -gene) %>%
+  as.tibble() %>%
+  inner_join(stomach_tcga_clinical_females[, c("sample", "histological_type")], by = "sample") %>%
+  inner_join(skyblue_genes_females[, c("gene", "geneName", "kruskal_pval")], by = "gene") %>%
+  arrange(kruskal_pval)
+
+
+skyblue_genes_females_expr_c <- skyblue_genes_females_expr %>%
+  filter(geneName %in% c("HSP90AB1", "XPO5", "POLR1C", "MAD2L1BP", "MED20")) %>%
+  group_by(gene, geneName, kruskal_pval, histological_type) %>%
+  summarise(counts = n()) %>%
+  ungroup() %>%
+  mutate_if(is.character, as.factor) %>%
+  mutate(geneName = fct_reorder(geneName, kruskal_pval))
+
+
+# compare p-value distribution between genders
+p_dis_genders <- bind_rows(
+  skyblue_genes %>% dplyr::select(geneName, kruskal_pval) %>% mutate(gender = "males"),
+  skyblue_genes_females %>% dplyr::select(geneName, kruskal_pval) %>% mutate(gender = "females")) %>%
+  ggplot(mapping = aes(x = gender, y = -log10(kruskal_pval), fill = gender)) +
+  geom_boxplot() +
+  stat_compare_means(size = 4) +
+  theme_classic() +
+  theme(
+    axis.title = element_text(colour="black", size=14),
+    axis.text.y = element_text(colour="black", size=14),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    legend.text=element_text(colour="black", size=11),
+    legend.title=element_text(colour="black", size=13),
+    strip.background = element_blank(),
+    strip.text = element_text(colour="black", size=14),
+    legend.position = "bottom") +
+  scale_fill_manual(values=c("#fbb4b9", "#74a9cf"), name="Gender", labels = c("Female", "Male")) +
+  labs(x = "Gender", y = "P-value (-log10)", title = "") +
+  guides(fill=guide_legend(nrow=2))
+ggsave(filename="stomach_p_dist_genders.png", plot=p_dis_genders, path = "./plots/wgcna_networks_traits/", width=2, height=4)
+unlink("stomach_p_dist_genders.png")
+
+
+
+
+# plot boxplots for top 5 genes
+
+#males
 stomach_males_fpkm_plot <- skyblue_genes_expr %>%
   filter(geneName %in% c("HSP90AB1", "XPO5", "POLR1C", "MAD2L1BP", "MED20")) %>%
   mutate_if(is.character, as.factor) %>%
   mutate(geneName = fct_reorder(geneName, kruskal_pval)) %>%
   ggplot(mapping = aes(x = histological_type, y = fpkm, fill = histological_type)) +
   geom_boxplot() +
-  stat_compare_means() +
+  geom_text(data=skyblue_genes_expr_c, mapping=aes(x = histological_type, y = 1, label = counts)) +
+  stat_compare_means(label.x = 2) +
+  facet_wrap( ~ geneName, ncol = 5, nrow = 1) +
+  scale_fill_brewer(type = "qual", palette = "Set2", name = "Histological type") +
+  theme_classic() +
+  theme(
+    axis.title = element_text(colour="black", size=14),
+    axis.text.y = element_text(colour="black", size=14),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    legend.text=element_text(colour="black", size=13),
+    legend.title=element_text(colour="black", size=14),
+    strip.background = element_blank(),
+    strip.text = element_text(colour="black", size=14),
+    legend.position = "bottom") +
+  labs(x = "Histological type", y = "FPKM (log2)", title = "") +
+  guides(fill=guide_legend(nrow=6))
+ggsave(filename="stomach_tumour_skyblue_hist_types.png", plot=stomach_males_fpkm_plot, path = "./plots/wgcna_networks_traits/", width=15, height=5)
+unlink("stomach_tumour_skyblue_hist_types.png")
+
+
+#females
+stomach_females_fpkm_plot <- skyblue_genes_females_expr %>%
+  filter(geneName %in% c("HSP90AB1", "XPO5", "POLR1C", "MAD2L1BP", "MED20")) %>%
+  mutate_if(is.character, as.factor) %>%
+  mutate(geneName = fct_reorder(geneName, kruskal_pval)) %>%
+  ggplot(mapping = aes(x = histological_type, y = fpkm, fill = histological_type)) +
+  geom_boxplot() +
+  geom_text(data=skyblue_genes_females_expr_c, mapping=aes(x = histological_type, y = 1, label = counts)) +
+  stat_compare_means(label.x = 2) +
   facet_wrap( ~ geneName) +
   scale_fill_brewer(type = "qual", palette = "Set2", name = "Histological type") +
   theme_classic() +
   theme(
-  axis.title = element_text(colour="black", size=14),
-  axis.text.y = element_text(colour="black", size=14),
-  axis.text.x = element_blank(),
-  axis.ticks.x = element_blank(),
-  legend.text=element_text(colour="black", size=13),
-  legend.title=element_text(colour="black", size=14),
-  strip.background = element_blank(),
-  strip.text = element_text(colour="black", size=14),
-  legend.position = "bottom") +
+    axis.title = element_text(colour="black", size=14),
+    axis.text.y = element_text(colour="black", size=14),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    legend.text=element_text(colour="black", size=13),
+    legend.title=element_text(colour="black", size=14),
+    strip.background = element_blank(),
+    strip.text = element_text(colour="black", size=14),
+    legend.position = "bottom") +
   labs(x = "Histological type", y = "FPKM (log2)", title = "") +
-  guides(fill=guide_legend(nrow=6))
-ggsave(filename="stomach_tumour_skyblue_hist_types.png", plot=stomach_males_fpkm_plot, path = "./plots/wgcna_networks_traits/", width=9, height=10)
-unlink("stomach_tumour_skyblue_hist_types.png")
+  guides(fill=guide_legend(nrow=7))
+ggsave(filename="stomach_tumour_skyblue_hist_types_females.png", plot=stomach_females_fpkm_plot, path = "./plots/wgcna_networks_traits/", width=9, height=10)
+unlink("stomach_tumour_skyblue_hist_types_females.png")
 
 
 
-#
+# plot median fpkm by histological subtype
+
+# males
 stomach_males_fpkm_plot2 <- skyblue_genes_expr %>%
   group_by(histological_type, gene, geneName) %>%
   summarise(fpkm = median(fpkm)) %>%
@@ -140,6 +250,8 @@ unlink("stomach_tumour_skyblue_hist_types2.png")
 
 
 # plot boxplots for all hub genes
+
+# males
 stomach_males_fpkm_plot3 <- skyblue_genes_expr %>%
   mutate_if(is.character, as.factor) %>%
   mutate(geneName = fct_reorder(geneName, kruskal_pval)) %>%
