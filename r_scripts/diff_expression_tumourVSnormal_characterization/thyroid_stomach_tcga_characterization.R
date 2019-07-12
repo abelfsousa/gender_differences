@@ -243,7 +243,8 @@ thyroid_contingency <- fraction_degs_tsg %>%
   dplyr::select(state, tsgs, not_tsgs) %>%
   as.data.frame %>%
   column_to_rownames("state") %>%
-  fisher.test()
+  t() %>%
+  fisher.test(., alternative = "greater")
 
 stomach_contingency <- fraction_degs_tsg %>%
   filter(tissue == "Stomach", state != "common") %>%
@@ -251,7 +252,8 @@ stomach_contingency <- fraction_degs_tsg %>%
   dplyr::select(state, tsgs, not_tsgs) %>%
   as.data.frame %>%
   column_to_rownames("state") %>%
-  fisher.test()
+  t() %>%
+  fisher.test(., alternative = "greater")
 
 
 
@@ -397,6 +399,95 @@ degs_recp <- degs %>%
   group_by(tissue, state) %>%
   summarise(recept = length(intersect(geneName, horm_recpt))) %>%
   ungroup()
+
+
+
+
+# barplot of number of up-regulated DEGs in tumour/normal tissue by DEG type
+degs_tissue <- degs %>%
+  filter(state != "common") %>%
+  dplyr::select(tissue, state, logFC_males, logFC_females) %>%
+  gather(-c(tissue, state), key = "gender", value = "logFC") %>%
+  na.exclude() %>%
+  mutate(signal = if_else(logFC > 0, "up_tumour", "up_normal")) %>%
+  group_by(tissue, state, gender, signal) %>%
+  count() %>%
+  ungroup() %>%
+  mutate(type = "All DEGs")
+
+
+# barplot of number of TSGs up-regulated in tumour/normal tissue by DEG type
+degs_tsgs_tissue <- degs2 %>%
+  filter(state != "common", tsg == 1) %>%
+  dplyr::select(tissue, state, logFC_males, logFC_females) %>%
+  gather(-c(tissue, state), key = "gender", value = "logFC") %>%
+  na.exclude() %>%
+  mutate(signal = if_else(logFC > 0, "up_tumour", "up_normal")) %>%
+  group_by(tissue, state, gender, signal) %>%
+  count() %>%
+  ungroup() %>%
+  mutate(type = "DEGs TSGs")
+
+
+all_degs_tsgs <- bind_rows(degs_tissue, degs_tsgs_tissue)
+
+
+# stomach
+
+stomach_degs_tsgs <- all_degs_tsgs %>%
+  filter(tissue == "Stomach") %>%
+  ggplot(mapping = aes(x = state, y = n, fill = signal)) +
+    geom_bar(stat = "identity", position = "dodge", lwd=1) +
+    facet_wrap(~ type,
+      scales = "free_y",
+      labeller=labeller(type = c("All DEGs" = "All DEGs", "DEGs TSGs" = "DEGs with TSG activity"))) +
+    scale_fill_manual(values=c("#a1d76a", "#ca0020"), name="Expression", labels = c("Up-regulated normal", "Up-regulated tumour")) +
+    theme_classic() +
+    theme(
+      axis.title = element_text(colour="black", size=15),
+      axis.text.x = element_text(colour="black", size=13),
+      axis.text.y = element_text(colour="black", size=12),
+      legend.text=element_text(colour="black", size=13),
+      legend.title=element_text(colour="black", size=15),
+      strip.background = element_blank(),
+      strip.text = element_text(colour="black", size=18),
+      legend.position = "right") +
+    scale_x_discrete(labels = c("Female\nspecific", "Male\nspecifc")) +
+    labs(y = "Number of genes", x = "DEGs type", title = "")
+    #guides(fill=guide_legend(nrow=2), color=guide_legend(nrow=2))
+ggsave(filename="stomach_degs_tsgs.png", plot = stomach_degs_tsgs, path = "./plots/thyroid_stomach_tumourVSnormal", width=10, height=3)
+unlink("stomach_degs_tsgs.png")
+
+
+
+# thyroid
+
+thyroid_degs_tsgs <- all_degs_tsgs %>%
+  filter(tissue == "Thyroid") %>%
+  ggplot(mapping = aes(x = state, y = n, fill = signal)) +
+    geom_bar(stat = "identity", position = "dodge", lwd=1) +
+    facet_wrap(~ type,
+      scales = "free_y",
+      labeller=labeller(type = c("All DEGs" = "All DEGs", "DEGs TSGs" = "DEGs with TSG activity"))) +
+    scale_fill_manual(values=c("#a1d76a", "#ca0020"), name="Expression", labels = c("Up-regulated normal", "Up-regulated tumour")) +
+    theme_classic() +
+    theme(
+      axis.title = element_text(colour="black", size=15),
+      axis.text.x = element_text(colour="black", size=13),
+      axis.text.y = element_text(colour="black", size=12),
+      legend.text=element_text(colour="black", size=13),
+      legend.title=element_text(colour="black", size=15),
+      strip.background = element_blank(),
+      strip.text = element_text(colour="black", size=18),
+      legend.position = "right") +
+    scale_x_discrete(labels = c("Female\nspecific", "Male\nspecifc")) +
+    labs(y = "Number of genes", x = "DEGs type", title = "")
+    #guides(fill=guide_legend(nrow=2), color=guide_legend(nrow=2))
+ggsave(filename="thyroid_degs_tsgs.png", plot = thyroid_degs_tsgs, path = "./plots/thyroid_stomach_tumourVSnormal", width=10, height=3)
+unlink("thyroid_degs_tsgs.png")
+
+
+
 
 
 save(list=ls(), file="r_workspaces/thyroid_stomach_tcga_characterization.RData")

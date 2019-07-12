@@ -11,6 +11,7 @@ library(org.Hs.eg.db)
 library(VennDiagram)
 library(viridis)
 library(mygene)
+library(data.table)
 
 
 
@@ -373,6 +374,21 @@ stad_degs_MvsF_normal_specific_enriched_cancer_genes <- all_diff_genes %>%
   inner_join(cancer_genes %>% dplyr::select(`Gene Symbol`, `Genome Location`, `Tumour Types(Somatic)`, `Tumour Types(Germline)`, `Cancer Syndrome`, `Role in Cancer`), by = c("geneID" = "Gene Symbol")) %>%
   as.data.frame()
 write.table(stad_degs_MvsF_normal_specific_enriched_cancer_genes, "./files/stad_degs_MvsF_normal_specific_enriched_cancer_genes.txt", sep="\t", quote=F, row.names=F)
+
+
+
+# cancer drivers gene list
+driver_genes <- fread("./data/tcga/cancer_driver_genes.txt") %>%
+  as_tibble()
+
+driver_genes_summary <- driver_genes %>%
+  group_by(Gene, Decision) %>%
+  summarise(n = n()) %>%
+  ungroup()
+
+stad_degs_MvsF_drivers <- tumour_normal_signf_degs %>%
+  dplyr::select(geneName, state, log2FC_normal, log2FC_tumour) %>%
+  inner_join(driver_genes_summary, by = c("geneName" = "Gene"))
 
 
 

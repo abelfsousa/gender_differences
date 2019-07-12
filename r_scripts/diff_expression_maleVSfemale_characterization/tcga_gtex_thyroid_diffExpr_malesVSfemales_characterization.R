@@ -11,6 +11,7 @@ library(org.Hs.eg.db)
 library(VennDiagram)
 library(viridis)
 library(mygene)
+library(data.table)
 
 
 
@@ -374,6 +375,25 @@ thca_degs_MvsF_normal_specific_enriched_cancer_genes <- all_diff_genes %>%
 write.table(thca_degs_MvsF_normal_specific_enriched_cancer_genes, "./files/thca_degs_MvsF_normal_specific_enriched_cancer_genes.txt", sep="\t", quote=F, row.names=F)
 
 
+
+
+# cancer drivers gene list
+driver_genes <- fread("./data/tcga/cancer_driver_genes.txt") %>%
+  as_tibble()
+
+driver_genes_summary <- driver_genes %>%
+  group_by(Gene, Decision) %>%
+  summarise(n = n()) %>%
+  ungroup()
+
+thca_degs_MvsF_drivers <- tumour_normal_signf_degs %>%
+  dplyr::select(geneName, state, log2FC_normal, log2FC_tumour) %>%
+  inner_join(driver_genes_summary, by = c("geneName" = "Gene"))
+
+
+diff_expr_normal_table %>%
+  filter( !geneName %in% (tumour_normal_signf_degs %>% filter(state == "normal_specific" | state == "common") %>% pull(geneName)) ) %>%
+  inner_join(driver_genes_summary, by = c("geneName" = "Gene"))
 
 
 

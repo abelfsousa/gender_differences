@@ -223,7 +223,12 @@ unlink("thca_TvsN_rna_meth_plot.png")
 
 # DEGs that are TSGs
 tsgs <- read_tsv("./files/degs_TvsN_stomach_thyroid_tsgs.txt") %>%
-	filter(tissue == "Thyroid" & state != "common")
+	filter(tissue == "Thyroid" & state != "common") %>%
+	gather(key = "logFC", value = "value", -c(genes, geneName, chrom, state, tissue, geneType, tsg)) %>%
+	na.exclude() %>%
+	dplyr::select(-logFC) %>%
+	dplyr::rename(logFC = value) %>%
+	filter(logFC < 0)
 
 thca_TvsN_meth_boxp_tsgs <- thca_TvsN_meth %>%
 	filter(geneName %in% tsgs$geneName) %>%
@@ -231,17 +236,21 @@ thca_TvsN_meth_boxp_tsgs <- thca_TvsN_meth %>%
 	geom_boxplot() +
 	facet_wrap( ~ state,
 		labeller = labeller(state = c("female_specific" = "Female-specific", "male_specific" = "Male-specific"))) +
-	stat_compare_means() +
+	stat_compare_means(size = 5) +
 	theme_classic() +
 	theme(
 		axis.title = element_text(color = "black", size=18),
 	  axis.text = element_text(color="black", size=14),
 	  strip.background = element_blank(),
 	  strip.text = element_text(color="black", size=18),
-		plot.title = element_text(color="black", size=18)) +
-	scale_fill_manual(values=c("#ca0020", "#a1d76a"), guide=F) +
+		plot.title = element_text(color="black", size=18),
+		legend.title = element_text(color="black", size=18),
+		legend.text = element_text(color="black", size=14)) +
+	scale_fill_manual(values=c("#ca0020", "#a1d76a"), labels = c("Tumour", "Normal"), name = "Tissue") +
 	scale_x_discrete(labels=c("Tumour", "Normal")) +
-	labs(x = "", y = "Beta value", title = "Methylation")
+	labs(x = "Tissue", y = "Beta value", title = "")
+ggsave(filename="thca_TvsN_meth_boxp_tsgs.png", plot=thca_TvsN_meth_boxp_tsgs, height=6, width=8, path = "./plots/methylation_analysis/")
+unlink("thca_TvsN_meth_boxp_tsgs.png")
 
 thca_TvsN_fpkm_boxp_tsgs <- thca_TvsN_meth %>%
 	filter(geneName %in% tsgs$geneName) %>%
@@ -249,21 +258,26 @@ thca_TvsN_fpkm_boxp_tsgs <- thca_TvsN_meth %>%
 	geom_boxplot() +
 	facet_wrap( ~ state,
 		labeller = labeller(state = c("female_specific" = "Female-specific", "male_specific" = "Male-specific"))) +
-	stat_compare_means() +
+	stat_compare_means(size = 5) +
 	theme_classic() +
 	theme(
 		axis.title = element_text(color = "black", size=18),
 		axis.text = element_text(color="black", size=14),
 		strip.background = element_blank(),
 		strip.text = element_text(color="black", size=18),
-		plot.title = element_text(color="black", size=18)) +
-	scale_fill_manual(values=c("#ca0020", "#a1d76a"), guide=F) +
+		plot.title = element_text(color="black", size=18),
+		legend.title = element_text(color="black", size=18),
+		legend.text = element_text(color="black", size=14)) +
+	scale_fill_manual(values=c("#ca0020", "#a1d76a"), labels = c("Tumour", "Normal"), name = "Tissue") +
 	scale_x_discrete(labels=c("Tumour", "Normal")) +
 	scale_y_continuous(trans = "log2") +
-	labs(x = "Tissue", y = "FPKM (log2 scale)", title = "Expression")
+	labs(x = "Tissue", y = "FPKM (log2 scale)", title = "")
+ggsave(filename="thca_TvsN_fpkm_boxp_tsgs.png", plot=thca_TvsN_fpkm_boxp_tsgs, height=6, width=8, path = "./plots/methylation_analysis/")
+unlink("thca_TvsN_fpkm_boxp_tsgs.png")
+
 
 thca_TvsN_plot_tsgs <- plot_grid(thca_TvsN_meth_boxp_tsgs, thca_TvsN_fpkm_boxp_tsgs, labels = c("", ""), nrow = 2, align = "v")
-ggsave(filename="thca_TvsN_rna_meth_plot_tsgs.png", plot=thca_TvsN_plot_tsgs, height=12, width=6, path = "./plots/methylation_analysis/")
+ggsave(filename="thca_TvsN_rna_meth_plot_tsgs.png", plot=thca_TvsN_plot_tsgs, height=8, width=8, path = "./plots/methylation_analysis/")
 unlink("thca_TvsN_rna_meth_plot_tsgs.png")
 
 
