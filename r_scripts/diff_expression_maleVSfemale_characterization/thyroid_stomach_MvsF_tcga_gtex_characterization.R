@@ -123,7 +123,7 @@ normal_specific_enrch_thyroid <- normal_specific_enrch %>%
       ~ Description,
       ncol = 2,
       nrow = 2,
-      labeller=labeller(Description = c("GO_BP" = "GO\nbiological processes", "CM" = "Cancer\nmodules", "KEGG" = "KEGG\npathways", "POS" = "Positional\ngene sets"))) +
+      labeller=labeller(Description = c("GO_BP" = "GO\nbio processes", "CM" = "Cancer\nmodules", "KEGG" = "KEGG\npathways", "POS" = "Positional\ngene sets"))) +
     scale_color_viridis(discrete = TRUE, option = "C", name = "Term") +
     scale_fill_viridis(discrete = TRUE, option = "C", name = "Term") +
     #scale_colour_brewer(palette = "Set3", name = "Term") +
@@ -133,7 +133,7 @@ normal_specific_enrch_thyroid <- normal_specific_enrch %>%
       axis.title = element_text(colour="black", size=15),
       axis.text.x = element_text(colour="black", size=13),
       axis.text.y = element_text(colour="black", size=12),
-      legend.text=element_text(colour="black", size=13),
+      legend.text=element_text(colour="black", size=16),
       legend.title=element_text(colour="black", size=15),
       strip.background = element_blank(),
       strip.text = element_text(colour="black", size=15)) +
@@ -152,7 +152,7 @@ normal_specific_enrch_stomach <- normal_specific_enrch %>%
     geom_vline(xintercept = 0, linetype="dashed", color = "black", size=0.3) +
     facet_wrap(
       ~ Description,
-      labeller=labeller(Description = c("GO_BP" = "GO\nbiological processes", "CM" = "Cancer\nmodules", "KEGG" = "KEGG\npathways"))) +
+      labeller=labeller(Description = c("GO_BP" = "GO\nbio processes", "CM" = "Cancer\nmodules", "KEGG" = "KEGG\npathways"))) +
     #scale_color_viridis(discrete = TRUE, option = "C", name = "Term") +
     #scale_fill_viridis(discrete = TRUE, option = "C", name = "Term") +
     scale_colour_brewer(palette = "Set1", name = "Term") +
@@ -162,10 +162,10 @@ normal_specific_enrch_stomach <- normal_specific_enrch %>%
       axis.title = element_text(colour="black", size=15),
       axis.text.x = element_text(colour="black", size=12),
       axis.text.y = element_text(colour="black", size=12),
-      legend.text=element_text(colour="black", size=13),
-      legend.title=element_text(colour="black", size=15),
+      legend.text=element_text(colour="black", size=16),
+      legend.title=element_text(colour="black", size=18),
       strip.background = element_blank(),
-      strip.text = element_text(colour="black", size=15),
+      strip.text.x = element_text(colour="black", size=16),
       panel.spacing = unit(1, "lines")) +
     labs(x = "log2FC", y = "Density")
 ggsave(filename="normal_specific_enrch_stomach.png", plot = normal_specific_enrch_stomach, path = "./plots/diff_expression_maleVSfemale_gtex_normal", width=12, height=5)
@@ -270,6 +270,40 @@ unlink("thyroid_normal_spec_degs_sex_chrom.png")
 
 
 
+# cancer drivers gene list
+driver_genes <- data.table::fread("./data/tcga/cancer_driver_genes.txt") %>%
+  as_tibble()
+
+driver_genes_summary <- driver_genes %>%
+  group_by(Gene, Decision) %>%
+  summarise(n = n()) %>%
+  ungroup()
+
+
+thyroid_enr %>%
+  filter(state == "normal_specific") %>%
+  select(tissue, state, gene=geneID) %>%
+  mutate(gene = str_split(gene, "/")) %>%
+  unnest(cols = gene) %>%
+  distinct() %>%
+  inner_join(
+    thyroid_degs %>% filter(state == "normal_specific") %>% select(gene=geneName, log2fc=log2FC_normal),
+    by = "gene") %>%
+  filter(log2fc < 0) %>%
+  filter(gene %in% driver_genes_summary$Gene)
+
+
+stomach_enr %>%
+  filter(state == "normal_specific") %>%
+  select(tissue, state, gene=geneID) %>%
+  mutate(gene = str_split(gene, "/")) %>%
+  unnest(cols = gene) %>%
+  distinct() %>%
+  inner_join(
+    stomach_degs %>% filter(state == "normal_specific") %>% select(gene=geneName, log2fc=log2FC_normal),
+    by = "gene") %>%
+  filter(log2fc < 0) %>%
+  filter(gene %in% driver_genes_summary$Gene)
 
 
 

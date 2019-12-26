@@ -10,6 +10,7 @@ library(clusterProfiler)
 library(org.Hs.eg.db)
 library(VennDiagram)
 library(viridis)
+library(mygene)
 
 
 
@@ -52,6 +53,18 @@ males_females_signf_degs <- full_join(
     dplyr::rename(logFC_males = logFC.x, logFC_females = logFC.y, adj.P.Val_males = adj.P.Val.x, adj.P.Val_females = adj.P.Val.y)
 write.table(males_females_signf_degs, "./files/stomach_males_females_signf_degs.txt", sep="\t", quote=F, row.names=F)
 
+
+#gene annotation using MyGene.Info services
+#http://mygene.info/
+#http://mygene.info/metadata/fields
+
+
+males_females_signf_degs_annot <- queryMany(males_females_signf_degs$genes, scopes='ensembl.gene', fields=c("symbol", "name", "summary"), species='human', return.as = "DataFrame") %>%
+  as_tibble() %>%
+  dplyr::select(query, name, summary) %>%
+  inner_join(males_females_signf_degs, by = c("query" = "genes")) %>%
+  dplyr::select(ensembl_ID = query, gene_symbol = geneName, chrom, state, logFC_males, FDR_males = adj.P.Val_males, logFC_females, FDR_females = adj.P.Val_females, name, summary)
+write.table(males_females_signf_degs_annot, "./files/stomach_males_females_signf_degs_annot.txt", sep="\t", quote=F, row.names=F)
 
 
 # barplot of all significant DEGs between males and females: common, male-specific, female-specific
@@ -490,6 +503,30 @@ write.table(stad_compCluster_enrichKEGG2, "./files/stomach_male_female_compClust
 stad_compCluster_enrichKEGG_dot <- dotplot(stad_compCluster_enrichKEGG, font.size = 20, title = "KEGG pathways")
 ggsave(filename="stomach_compareCluster_degs_keggPath_dot.png", plot=stad_compCluster_enrichKEGG_dot, path = "./plots/diff_expression_tumourVSnormal/", width=15, height=8)
 unlink("stomach_compareCluster_degs_keggPath_dot.png")
+
+
+
+# cancer genes list
+cancer_genes <- read_tsv("./data/Census_allMon_May_13_17_05_42_2019.tsv")
+
+stad_degs_TvsN_cancer_genes <- males_females_signf_degs %>%
+  dplyr::select(geneName, state, logFC_males, logFC_females) %>%
+  inner_join(cancer_genes %>% dplyr::select(`Gene Symbol`, `Genome Location`, `Tumour Types(Somatic)`, `Tumour Types(Germline)`, `Cancer Syndrome`, `Role in Cancer`), by = c("geneName" = "Gene Symbol"))
+
+
+
+# cancer drivers gene list
+driver_genes <- data.table::fread("./data/tcga/cancer_driver_genes.txt") %>%
+  as_tibble()
+
+driver_genes_summary <- driver_genes %>%
+  group_by(Gene, Decision) %>%
+  summarise(n = n()) %>%
+  ungroup()
+
+stad_degs_TvsN_drivers <- males_females_signf_degs %>%
+  dplyr::select(geneName, state, logFC_males, logFC_females) %>%
+  inner_join(driver_genes_summary, by = c("geneName" = "Gene"))
 
 
 

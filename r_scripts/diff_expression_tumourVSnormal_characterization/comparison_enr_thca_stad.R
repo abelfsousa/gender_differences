@@ -82,14 +82,15 @@ comparison <- bind_rows(comp_protected, comp_susceptible) %>%
     scales = "free",
     space = "free_y",
     labeller=labeller(
-      suscpt = c("less_affected" = "Protected\ngender", "more_affected" = "Susceptible\ngender"))) +
+      suscpt = c("less_affected" = "Less affected\ngender", "more_affected" = "More affected\ngender"))) +
   theme(
     axis.title.x=element_text(colour="black", size=15),
     axis.title.y=element_blank(),
     axis.text.y=element_text(colour="black", size=12),
     axis.text.x=element_text(colour="black", size=13),
     plot.title = element_blank(),
-    strip.text = element_text(colour="black", size=16),
+    strip.text.y = element_text(colour="black", size=11),
+    strip.text.x = element_text(colour="black", size=18),
     strip.background = element_blank(),
     legend.text = element_text(colour="black", size=13),
     legend.title = element_text(colour="black", size=15)) +
@@ -122,14 +123,14 @@ comparison_immuno <- bind_rows(comp_protected, comp_susceptible) %>%
     scales = "free",
     space = "free_y",
     labeller=labeller(
-      suscpt = c("less_affected" = "Protected gender"))) +
+      suscpt = c("less_affected" = "Less affected gender"))) +
   theme(
     axis.title.x=element_text(colour="black", size=18),
     axis.title.y=element_blank(),
     axis.text.y=element_text(colour="black", size=12),
     axis.text.x=element_text(colour="black", size=15),
     plot.title = element_blank(),
-    strip.text = element_text(colour="black", size=18),
+    strip.text = element_text(colour="black", size=20),
     strip.background = element_blank(),
     legend.text = element_text(colour="black", size=14),
     legend.title = element_text(colour="black", size=16)) +
@@ -183,12 +184,12 @@ comp_distribution <- comparison$data %>%
       "CELL CELL ADHESION" = "CELL CELL\nADHESION",
       "SINGLE ORGANISM CELL ADHESION" = "SINGLE ORG\nADHESION",
       "PKCA DN.V1 UP" = "PKCA\nDN.V1 UP",
-      "IMMUNE RESPONSE (MODULE 75)" = "MODULE\n75",
-      "IMMUNE RESPONSE (MODULE 46)" = "MODULE\n46",
-      "INFLAMMATORY RESPONSE (MODULE 84)" = "MODULE\n84",
-      "MEMBRANE RECEPTORS (MODULE 64)" = "MODULE\n64",
-      "SIGNALLING (MODULE 117)" = "MODULE\n117",
-      "CELL LINE EXPRESSED GENES (MODULE 53)" = "MODULE\n53"))) +
+      "IMMUNE RESPONSE (MODULE 75)" = "MODULE\n75 IR",
+      "IMMUNE RESPONSE (MODULE 46)" = "MODULE\n46 IR",
+      "INFLAMMATORY RESPONSE (MODULE 84)" = "MODULE\n84 IR",
+      "MEMBRANE RECEPTORS (MODULE 64)" = "MODULE\n64 MR",
+      "SIGNALLING (MODULE 117)" = "MODULE\n117 SIGN",
+      "CELL LINE EXPRESSED GENES (MODULE 53)" = "MODULE\n53 CELL"))) +
   theme(
     axis.title=element_text(colour="black", size=18),
     axis.text.y=element_text(colour="black", size=15),

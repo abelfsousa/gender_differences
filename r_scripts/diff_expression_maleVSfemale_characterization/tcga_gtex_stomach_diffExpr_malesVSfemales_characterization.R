@@ -63,10 +63,10 @@ write.table(tumour_normal_signf_degs, "./files/stomach_tumour_normal_signf_degs.
 
 
 tumour_normal_signf_degs_annot <- queryMany(tumour_normal_signf_degs$genes, scopes='ensembl.gene', fields=c("symbol", "name", "summary"), species='human', return.as = "DataFrame") %>%
-  as_tibble()
-tumour_normal_signf_degs_annot <- tumour_normal_signf_degs %>%
-  inner_join(tumour_normal_signf_degs_annot[, c("query", "symbol", "name", "summary")], by = c("genes" = "query", "geneName" = "symbol"))
-
+  as_tibble() %>%
+  dplyr::select(query, name, summary) %>%
+  inner_join(tumour_normal_signf_degs, by = c("query" = "genes")) %>%
+  dplyr::select(ensembl_ID = query, gene_symbol = geneName, chrom, state, log2FC_tumour, FDR_tumour, log2FC_normal, FDR_normal, name, summary)
 write.table(tumour_normal_signf_degs_annot, "./files/stomach_tumour_normal_signf_degs_annot.txt", sep="\t", quote=F, row.names=F)
 
 
@@ -259,11 +259,11 @@ tn_enr_bp2 <- all_diff_genes %>%
     scales = "free",
     labeller=labeller(
       state = c("common" = "Common", "normal_specific" = "Normal-specific"),
-      Description = c("GO_BP" = "GO biological processes", "KEGG" = "KEGG", "ONCO" = "Onco", "IMMUNO" = "Immunogenic", "POS" = "Positional", "CM" = "Cancer\nmodules"))) +
+      Description = c("GO_BP" = "GO bio processes", "KEGG" = "KEGG", "ONCO" = "Onco", "IMMUNO" = "Immunogenic", "POS" = "Positional", "CM" = "Cancer\nmodules"))) +
   theme(
     axis.title.x=element_text(colour="black", size=16),
     axis.title.y=element_blank(),
-    axis.text.y=element_text(colour="black", size=13),
+    axis.text.y=element_text(colour="black", size=16),
     axis.text.x=element_text(colour="black", size=14),
     plot.title = element_blank(),
     strip.text.y = element_text(colour="black", size=13),
@@ -274,8 +274,8 @@ tn_enr_bp2 <- all_diff_genes %>%
   coord_flip() +
   scale_fill_viridis(option="D", name="Adj p-val\n(-log10)") +
   scale_y_continuous(name = "Number of genes", seq(from = 0,to = 10, by = 2))
-ggsave(filename="stomach_tumour_normal_enr_bp_normal_specific.png", plot=tn_enr_bp2, path="./plots/diff_expression_maleVSfemale_gtex_normal/", width = 8, height = 5)
-ggsave(filename="stomach_tumour_normal_enr_bp_normal_specific.pdf", plot=tn_enr_bp2, path="./plots/diff_expression_maleVSfemale_gtex_normal/", width = 8, height = 5)
+ggsave(filename="stomach_tumour_normal_enr_bp_normal_specific.png", plot=tn_enr_bp2, path="./plots/diff_expression_maleVSfemale_gtex_normal/", width = 10, height = 4)
+ggsave(filename="stomach_tumour_normal_enr_bp_normal_specific.pdf", plot=tn_enr_bp2, path="./plots/diff_expression_maleVSfemale_gtex_normal/", width = 10, height = 4)
 unlink("stomach_tumour_normal_enr_bp_normal_specific.png")
 unlink("stomach_tumour_normal_enr_bp_normal_specific.pdf")
 

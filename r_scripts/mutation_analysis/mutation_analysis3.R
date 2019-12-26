@@ -149,6 +149,7 @@ stad_mut_n <- stad_mut %>%
 thca_mut_freq <- thca_mut_n %>%
   group_by(gene) %>%
   count() %>%
+	ungroup() %>%
   mutate(freq = n/length(unique(thca_mut_n$sample))) %>%
   arrange(desc(freq))
 
@@ -190,6 +191,7 @@ thca_mut_freq_gender <- bind_rows(thca_mut_freq1, thca_mut_freq2)
 stad_mut_freq <- stad_mut_n %>%
   group_by(gene) %>%
   count() %>%
+	ungroup() %>%
   mutate(freq = n/length(unique(stad_mut_n$sample))) %>%
   arrange(desc(freq))
 

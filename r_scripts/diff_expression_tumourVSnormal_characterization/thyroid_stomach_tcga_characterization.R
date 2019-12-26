@@ -438,6 +438,7 @@ stomach_degs_tsgs <- all_degs_tsgs %>%
   filter(tissue == "Stomach") %>%
   ggplot(mapping = aes(x = state, y = n, fill = signal)) +
     geom_bar(stat = "identity", position = "dodge", lwd=1) +
+    geom_text(mapping = aes(label = n), position = position_dodge(width = 0.9), vjust = 0.5, size=5) +
     facet_wrap(~ type,
       scales = "free_y",
       labeller=labeller(type = c("All DEGs" = "All DEGs", "DEGs TSGs" = "DEGs with TSG activity"))) +
@@ -466,6 +467,7 @@ thyroid_degs_tsgs <- all_degs_tsgs %>%
   filter(tissue == "Thyroid") %>%
   ggplot(mapping = aes(x = state, y = n, fill = signal)) +
     geom_bar(stat = "identity", position = "dodge", lwd=1) +
+    geom_text(mapping = aes(label = n), position = position_dodge(width = 0.9), vjust = 0.5, size=5) +
     facet_wrap(~ type,
       scales = "free_y",
       labeller=labeller(type = c("All DEGs" = "All DEGs", "DEGs TSGs" = "DEGs with TSG activity"))) +
