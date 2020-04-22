@@ -4,7 +4,7 @@
 
 
 
-run.wilcoxon.diffExpr <- function(group1, group2, expression.data){
+wilcoxon_diff_expression <- function(group1, group2, expression.data){
 
     #differential expression analysis using Wilcoxon signed-rank test
 
@@ -32,6 +32,47 @@ run.wilcoxon.diffExpr <- function(group1, group2, expression.data){
     return(gene.table)
 }
 
+
+edgeR_diff_expression <- function(design, factor, expression.data, gene.annot){
+
+	#differential expression analysis by edgeR
+
+	#adjust for covariates when defining design matrix:
+	#model.matrix(~ cov1 + cov2 + cov..., data)
+
+	library(edgeR)
+
+	#create a DGEList object
+	y <- DGEList( counts=expression.data, group=factor, genes=rownames(expression.data) )
+
+	#normalization TMM
+	y <- calcNormFactors(y)
+	#estimating NB dispertions
+	y <- estimateDisp(y, design)
+	#fitting the negative binomial GLM
+	fit <- glmFit(y, design)
+	#likelihood ratio test
+	lrt <- glmLRT(fit)
+
+	degs <- cbind(lrt$genes, lrt$table, p.adjust(lrt$table$PValue, method="BH"))
+	colnames(degs)[6] <- "FDR"
+	degs <- merge(degs, gene.annot, by.x = "genes", by.y = "geneID")
+	degs <- degs[,c("genes","geneName","geneType","chrom","logFC","logCPM","LR","PValue","FDR")]
+	degs <- degs[order(degs$FDR,decreasing=F),]
+
+	return(degs)
+}
+
+
+sam_diff_expression <- function(expression.data, factor, gene.annot){
+
+  library(samr)
+
+  #fit the model
+  samfit <- SAMseq(x = expression.data, y = factor, resp.type = "Two class unpaired", geneid = gene.annot$geneID, genenames = gene.annot$geneName)
+
+  return(samfit)
+}
 
 
 remove_batch <- function(gene, data, covar){

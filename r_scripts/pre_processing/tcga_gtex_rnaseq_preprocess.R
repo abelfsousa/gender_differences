@@ -64,9 +64,9 @@ get.metaData <- function(metadata.json, flag){
 		submitter_id <- substring(metadata[[i]]$cases[[1]]$samples[[1]]$submitter_id, 1, 15)
 		sample_type_id <- metadata[[i]]$cases[[1]]$samples[[1]]$sample_type_id
 		sample_type <- metadata[[i]]$cases[[1]]$samples[[1]]$sample_type
-		
+
 		exprFiles.info <- rbind(exprFiles.info, c(file_name, file_type, submitter_id, sample_type_id, sample_type))
-		
+
 		if(metadata[[i]]$cases[[1]]$demographic$gender == "not reported"){
 			gender <- NA
 		}
@@ -116,21 +116,21 @@ get.metaData <- function(metadata.json, flag){
 		analyte <- substring(metadata[[i]]$associated_entities[[1]]$entity_submitter_id, 20, 20)
 		plate <- substring(metadata[[i]]$associated_entities[[1]]$entity_submitter_id, 22, 25)
 		center <- substring(metadata[[i]]$associated_entities[[1]]$entity_submitter_id, 27, 28)
-		
+
 		samplesClinical.info <- rbind(samplesClinical.info, c(submitter_id, sample_type_id, gender, race, ethnicity, age_actual, age_at_diagnosis, tumor_stage, vital_status, tss, vial, portion, analyte, plate, center))
 	}
-	
+
 	exprFiles.info <- as.data.frame(exprFiles.info, stringsAsFactors=F)
 	colnames(exprFiles.info) <- c("file_name", "file_type", "submitter_id", "sample_type_id", "sample_type")
-	
+
 	samplesClinical.info <- as.data.frame(samplesClinical.info, stringsAsFactors=F)
 	colnames(samplesClinical.info) <- c("submitter_id", "sample_type_id", "gender", "race", "ethnicity", "age_actual", "age_at_diagnosis", "tumor_stage", "vital_status", "tss", "vial", "portion", "analyte", "plate", "center")
 	samplesClinical.info <- unique(samplesClinical.info)
 	rownames(samplesClinical.info) <- samplesClinical.info$submitter_id
-	
+
 	write.table(exprFiles.info, paste(flag, "exprFiles_info.txt", sep = "."), quote=F, sep="\t", row.names=F)
 	write.table(samplesClinical.info, paste(flag, "samplesClinical_info.txt", sep = "."), quote=F, sep="\t", row.names=F)
-	
+
 	meta <- list(exprFiles.info = exprFiles.info, samplesClinical.info = samplesClinical.info)
 	return(meta)
 }
@@ -165,7 +165,7 @@ get.expressionData <- function(exprFiles.info, files.dir, geneIDs){
 }
 
 
-filter.genes.tcga <- function(expression.counts, geneIDs, cpm.cutO, p.cutO){
+filter.genes.tcga.CPM <- function(expression.counts, geneIDs, cpm.cutO, p.cutO){
 
 	#filter out the low-expressed genes
 	#returns a vector containing the ensembl gene IDs of the genes that passed the filter
@@ -183,7 +183,8 @@ filter.genes.tcga <- function(expression.counts, geneIDs, cpm.cutO, p.cutO){
 	return(keep.ensids)
 }
 
-filter.genes.gtex <- function(expression.counts, geneIDs, cpm.cutO, p.cutO){
+
+filter.genes.gtex.CPM <- function(expression.counts, geneIDs, cpm.cutO, p.cutO){
 
 	#filter out the low-expressed genes
 	#returns a vector containing the ensembl gene IDs of the genes that passed the filter
@@ -198,6 +199,17 @@ filter.genes.gtex <- function(expression.counts, geneIDs, cpm.cutO, p.cutO){
 }
 
 
+filter.genes.FPKM <- function(expression, geneIDs, median.fpkm){
+
+	#filter out the low-expressed genes
+	#returns a vector containing the ensembl gene IDs of the genes that passed the filter
+
+	#select genes that have at least # median FPKM across samples
+	keep <- apply(expression, 1, function(x) median(x, na.rm=T) >= median.fpkm)
+	keep.ensids <- geneIDs[keep]
+
+	return(keep.ensids)
+}
 
 
 #========================
@@ -218,8 +230,8 @@ tcga.geneIDs.annot.2$geneID <- sapply(strsplit(tcga.geneIDs.annot.2$geneID, spli
 #=====================================
 
 
-meta.file.thca <- "/Volumes/toshiba/Projects/Gender_differences/Gender_cancer_raw_data/TCGA.GDC/harmonized_data/rnaseq/THCA/metadata.cart.2016-10-14T14-04-10.146974.json"
-files.dir.thca <- "/Volumes/toshiba/Projects/Gender_differences/Gender_cancer_raw_data/TCGA.GDC/harmonized_data/rnaseq/THCA/files/"
+meta.file.thca <- "/Volumes/G-DRIVE/data/gdc/tcga/rnaseq/thca/metadata.cart.2016-10-14T14-04-10.146974.json"
+files.dir.thca <- "/Volumes/G-DRIVE/data/gdc/tcga/rnaseq/thca/files/"
 
 
 #read metadata
@@ -249,8 +261,8 @@ expressiondata.thca <- get.expressionData(metadata.thca$exprFiles.info, files.di
 #================================
 
 
-meta.file.stad <- "/Volumes/toshiba/Projects/Gender_differences/Gender_cancer_raw_data/TCGA.GDC/harmonized_data/rnaseq/STAD/metadata.cart.2016-10-17T11-05-37.830972.json"
-files.dir.stad <- "/Volumes/toshiba/Projects/Gender_differences/Gender_cancer_raw_data/TCGA.GDC/harmonized_data/rnaseq/STAD/files/"
+meta.file.stad <- "/Volumes/G-DRIVE/data/gdc/tcga/rnaseq/stad/metadata.cart.2016-10-17T11-05-37.830972.json"
+files.dir.stad <- "/Volumes/G-DRIVE/data/gdc/tcga/rnaseq/stad/files/"
 
 
 #read metadata
@@ -286,12 +298,17 @@ accepted.biotypes <- c("protein_coding", "lincRNA")
 accepted.genes <- sort(tcga.geneIDs.annot[ ( tcga.geneIDs.annot$geneType %in% accepted.biotypes ), c("geneID") ])
 #27470
 
-
 #select genes that have at least 5 reads per million mapped reads (CPM) in at least 20% of tumour OR normal samples
-keep.ensids.thca <- filter.genes.tcga(expressiondata.thca$counts[accepted.genes,], accepted.genes, 5, 0.2)
+#keep.ensids.thca <- filter.genes.tcga(expressiondata.thca$counts[accepted.genes,], accepted.genes, 5, 0.2)
 #12960
-keep.ensids.stad <- filter.genes.tcga(expressiondata.stad$counts[accepted.genes,], accepted.genes, 5, 0.2)
+#keep.ensids.stad <- filter.genes.tcga(expressiondata.stad$counts[accepted.genes,], accepted.genes, 5, 0.2)
 #13674
+
+#select genes that have at least 1 median FPKM across samples
+keep.ensids.thca <- filter.genes.FPKM(expressiondata.thca$fpkm[accepted.genes,], accepted.genes, 1)
+#11884
+keep.ensids.stad <- filter.genes.FPKM(expressiondata.stad$fpkm[accepted.genes,], accepted.genes, 1)
+#12048
 
 
 
@@ -361,7 +378,7 @@ get.GTEx.data <- function(readcnts.file, rpkm.file, metadata.file){
 	rownames(readcnts) <- readcnts$Name
 	#print(all.equal(geneIDs, readcnts$Name))
 	readcnts <- readcnts[,-c(1,2)]
-	
+
 	rpkm <- read.table(rpkm.file, sep = "\t", h = T, stringsAsFactors = F)
 	rownames(rpkm) <- rpkm$Name
 	#print(all.equal(geneIDs, rpkm$Name))
@@ -416,11 +433,17 @@ accepted.genes.gtex <- sort(gtex.geneIDs.annot[ ( gtex.geneIDs.annot$geneType %i
 
 
 #select genes that have at least 5 reads per million mapped reads (CPM) in at least 20% of samples
-keep.ensids.thyroid <- filter.genes.gtex(gtex.data$thyroid$counts[intersect(accepted.genes.gtex, rownames(gtex.data$thyroid$counts)), ], intersect(accepted.genes.gtex, rownames(gtex.data$thyroid$counts)), 5, 0.2)
+#keep.ensids.thyroid <- filter.genes.gtex(gtex.data$thyroid$counts[intersect(accepted.genes.gtex, rownames(gtex.data$thyroid$counts)), ], intersect(accepted.genes.gtex, rownames(gtex.data$thyroid$counts)), 5, 0.2)
 #12501
 
-keep.ensids.stomach <- filter.genes.gtex(gtex.data$stomach$counts[intersect(accepted.genes.gtex, rownames(gtex.data$stomach$counts)), ], intersect(accepted.genes.gtex, rownames(gtex.data$stomach$counts)), 5, 0.2)
+#keep.ensids.stomach <- filter.genes.gtex(gtex.data$stomach$counts[intersect(accepted.genes.gtex, rownames(gtex.data$stomach$counts)), ], intersect(accepted.genes.gtex, rownames(gtex.data$stomach$counts)), 5, 0.2)
 #12371
+
+#select genes that have at least 1 median FPKM across samples
+keep.ensids.thyroid <- filter.genes.FPKM(gtex.data$thyroid$rpkm[intersect(accepted.genes.gtex, rownames(gtex.data$thyroid$rpkm)), ], intersect(accepted.genes.gtex, rownames(gtex.data$thyroid$rpkm)), 1)
+#12835
+keep.ensids.stomach <- filter.genes.FPKM(gtex.data$stomach$rpkm[intersect(accepted.genes.gtex, rownames(gtex.data$stomach$rpkm)), ], intersect(accepted.genes.gtex, rownames(gtex.data$stomach$rpkm)), 1)
+#12073
 
 
 
@@ -523,8 +546,4 @@ write.table(stomach_tcga_gtex_fpkm, "./files/stomach_tcga_gtex_fpkm.txt", quote=
 write.table(stomach_tcga_gtex_meta, "./files/stomach_tcga_gtex_meta.txt", quote=F, sep="\t", row.names=F)
 
 
-
-
-
 save(list=ls(), file="./r_workspaces/tcga_gtex_rnaseq_preprocess.RData")
-
