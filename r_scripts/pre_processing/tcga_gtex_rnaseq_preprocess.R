@@ -299,16 +299,39 @@ accepted.genes <- sort(tcga.geneIDs.annot[ ( tcga.geneIDs.annot$geneType %in% ac
 #27470
 
 #select genes that have at least 5 reads per million mapped reads (CPM) in at least 20% of tumour OR normal samples
-#keep.ensids.thca <- filter.genes.tcga(expressiondata.thca$counts[accepted.genes,], accepted.genes, 5, 0.2)
+keep.ensids.thca <- filter.genes.tcga.CPM(expressiondata.thca$counts[accepted.genes,], accepted.genes, 5, 0.2)
 #12960
-#keep.ensids.stad <- filter.genes.tcga(expressiondata.stad$counts[accepted.genes,], accepted.genes, 5, 0.2)
+keep.ensids.stad <- filter.genes.tcga.CPM(expressiondata.stad$counts[accepted.genes,], accepted.genes, 5, 0.2)
 #13674
 
 #select genes that have at least 1 median FPKM across samples
-keep.ensids.thca <- filter.genes.FPKM(expressiondata.thca$fpkm[accepted.genes,], accepted.genes, 1)
+keep.ensids.thca2 <- filter.genes.FPKM(expressiondata.thca$fpkm[accepted.genes,], accepted.genes, 1)
 #11884
-keep.ensids.stad <- filter.genes.FPKM(expressiondata.stad$fpkm[accepted.genes,], accepted.genes, 1)
+keep.ensids.stad2 <- filter.genes.FPKM(expressiondata.stad$fpkm[accepted.genes,], accepted.genes, 1)
 #12048
+
+
+length(intersect(keep.ensids.thca, keep.ensids.thca2))
+#11582
+length(union(keep.ensids.thca, keep.ensids.thca2))
+#13262
+length(intersect(keep.ensids.thca, keep.ensids.thca2))/length(union(keep.ensids.thca, keep.ensids.thca2))
+#0.8733223
+length(intersect(keep.ensids.thca, keep.ensids.thca2))/11884
+#0.9745877
+length(intersect(keep.ensids.thca, keep.ensids.thca2))/12960
+#0.8936728
+
+length(intersect(keep.ensids.stad, keep.ensids.stad2))
+#11817
+length(union(keep.ensids.stad, keep.ensids.stad2))
+#13905
+length(intersect(keep.ensids.stad, keep.ensids.stad2))/length(union(keep.ensids.stad, keep.ensids.stad2))
+#0.8498382
+length(intersect(keep.ensids.stad, keep.ensids.stad2))/12048
+#0.9808267
+length(intersect(keep.ensids.stad, keep.ensids.stad2))/13674
+#0.8641948
 
 
 
@@ -433,17 +456,40 @@ accepted.genes.gtex <- sort(gtex.geneIDs.annot[ ( gtex.geneIDs.annot$geneType %i
 
 
 #select genes that have at least 5 reads per million mapped reads (CPM) in at least 20% of samples
-#keep.ensids.thyroid <- filter.genes.gtex(gtex.data$thyroid$counts[intersect(accepted.genes.gtex, rownames(gtex.data$thyroid$counts)), ], intersect(accepted.genes.gtex, rownames(gtex.data$thyroid$counts)), 5, 0.2)
+keep.ensids.thyroid <- filter.genes.gtex.CPM(gtex.data$thyroid$counts[intersect(accepted.genes.gtex, rownames(gtex.data$thyroid$counts)), ], intersect(accepted.genes.gtex, rownames(gtex.data$thyroid$counts)), 5, 0.2)
 #12501
-
-#keep.ensids.stomach <- filter.genes.gtex(gtex.data$stomach$counts[intersect(accepted.genes.gtex, rownames(gtex.data$stomach$counts)), ], intersect(accepted.genes.gtex, rownames(gtex.data$stomach$counts)), 5, 0.2)
+keep.ensids.stomach <- filter.genes.gtex.CPM(gtex.data$stomach$counts[intersect(accepted.genes.gtex, rownames(gtex.data$stomach$counts)), ], intersect(accepted.genes.gtex, rownames(gtex.data$stomach$counts)), 5, 0.2)
 #12371
 
 #select genes that have at least 1 median FPKM across samples
-keep.ensids.thyroid <- filter.genes.FPKM(gtex.data$thyroid$rpkm[intersect(accepted.genes.gtex, rownames(gtex.data$thyroid$rpkm)), ], intersect(accepted.genes.gtex, rownames(gtex.data$thyroid$rpkm)), 1)
+keep.ensids.thyroid2 <- filter.genes.FPKM(gtex.data$thyroid$rpkm[intersect(accepted.genes.gtex, rownames(gtex.data$thyroid$rpkm)), ], intersect(accepted.genes.gtex, rownames(gtex.data$thyroid$rpkm)), 1)
 #12835
-keep.ensids.stomach <- filter.genes.FPKM(gtex.data$stomach$rpkm[intersect(accepted.genes.gtex, rownames(gtex.data$stomach$rpkm)), ], intersect(accepted.genes.gtex, rownames(gtex.data$stomach$rpkm)), 1)
+keep.ensids.stomach2 <- filter.genes.FPKM(gtex.data$stomach$rpkm[intersect(accepted.genes.gtex, rownames(gtex.data$stomach$rpkm)), ], intersect(accepted.genes.gtex, rownames(gtex.data$stomach$rpkm)), 1)
 #12073
+
+
+length(intersect(keep.ensids.thyroid, keep.ensids.thyroid2))
+#12013
+length(union(keep.ensids.thyroid, keep.ensids.thyroid2))
+#13323
+length(intersect(keep.ensids.thyroid, keep.ensids.thyroid2))/length(union(keep.ensids.thyroid, keep.ensids.thyroid2))
+#0.9016738
+length(intersect(keep.ensids.thyroid, keep.ensids.thyroid2))/12501
+#0.9609631
+length(intersect(keep.ensids.thyroid, keep.ensids.thyroid2))/12835
+#0.9359564
+
+
+length(intersect(keep.ensids.stomach, keep.ensids.stomach2))
+#11454
+length(union(keep.ensids.stomach, keep.ensids.stomach2))
+#12990
+length(intersect(keep.ensids.stomach, keep.ensids.stomach2))/length(union(keep.ensids.stomach, keep.ensids.stomach2))
+#0.8817552
+length(intersect(keep.ensids.stomach, keep.ensids.stomach2))/12371
+#0.925875
+length(intersect(keep.ensids.stomach, keep.ensids.stomach2))/12073
+#0.9487286
 
 
 

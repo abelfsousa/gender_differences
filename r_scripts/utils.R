@@ -4,9 +4,13 @@
 
 
 
-wilcoxon_diff_expression <- function(group1, group2, expression.data){
+wilcoxon_diff_expression <- function(group1, group2, expression.data, gene.annot){
 
     #differential expression analysis using Wilcoxon signed-rank test
+    #compares expression differences between two experimental groups
+
+    # this function expects rpkm values as expression data
+    # (at least some kind of library normalization)
 
     p.val <- c()
     log2FC <- c()
@@ -19,7 +23,7 @@ wilcoxon_diff_expression <- function(group1, group2, expression.data){
         group2.data <- as.numeric( expression.data[ gene, colnames(expression.data) %in% group2 ] )
 
         pvalue <- wilcox.test(group1.data, group2.data)$p.value
-        fc <- log2( (abs(median(group1.data))+0.05) / (abs(median(group2.data))+0.05) )
+        fc <- log2( (median(group1.data)+0.05) / (median(group2.data)+0.05) )
 
         p.val <- c(p.val, pvalue)
         log2FC <- c(log2FC, fc)
@@ -28,6 +32,10 @@ wilcoxon_diff_expression <- function(group1, group2, expression.data){
     FDR <- p.adjust(p.val, method="BH")
     gene.table <- cbind.data.frame(rownames(expression.data), log2FC, p.val, FDR)
     colnames(gene.table)[1] <- "genes"
+
+    gene.table <- merge(gene.table, gene.annot, by.x = "genes", by.y = "geneID")
+    gene.table <- gene.table[, c("genes", "geneName", "geneType", "chrom", "log2FC", "p.val", "FDR")]
+    gene.table <- gene.table[order(gene.table$FDR,decreasing=F),]
 
     return(gene.table)
 }
@@ -38,7 +46,9 @@ edgeR_diff_expression <- function(design, factor, expression.data, gene.annot){
 	#differential expression analysis by edgeR
 
 	#adjust for covariates when defining design matrix:
-	#model.matrix(~ cov1 + cov2 + cov..., data)
+	#model.matrix(~ cov1 + cov2 + cov3 + ..., data)
+
+  # this function expects raw counts values as expression data
 
 	library(edgeR)
 
@@ -66,12 +76,104 @@ edgeR_diff_expression <- function(design, factor, expression.data, gene.annot){
 
 sam_diff_expression <- function(expression.data, factor, gene.annot){
 
+  # this function expects raw counts values as expression data
+
   library(samr)
 
   #fit the model
   samfit <- SAMseq(x = expression.data, y = factor, resp.type = "Two class unpaired", geneid = gene.annot$geneID, genenames = gene.annot$geneName)
 
   return(samfit)
+}
+
+
+noiseq_diff_expression <- function(expression.data, metadata, f, gene.annot){
+	library(NOISeq)
+
+  # this function expects raw counts values as expression data
+
+	#create a NOISeq object
+	noiseqbioData <- readData(data = expression.data, factors = metadata)
+
+	#run NOISeqBIO
+	noiseqbioRun <- noiseqbio(input = noiseqbioData, factor = f, norm = "tmm", filter = 0)
+
+  vals <- levels(as.factor(metadata[, f]))
+
+	degs <- noiseqbioRun@results[[1]]
+	degs <- cbind(rownames(degs), degs)
+	colnames(degs)[1] <- "genes"
+	degs <- merge(degs, gene.annot, by.x = "genes", by.y = "geneID")
+	degs <- degs[, c("genes","geneName","geneType","chrom",paste(vals[1], "mean", sep="_"),paste(vals[2], "mean", sep="_"),"theta","prob","log2FC")]
+  degs$prob <- (1 - degs$prob)
+  colnames(degs)[8] <- "FDR"
+	degs <- degs[order(degs$FDR,decreasing=T),]
+
+	return(degs)
+}
+
+
+limma_diff_expression <- function(design, factor, expression.data, gene.annot){
+
+	#differential expression analysis by limma
+
+	#adjust for covariates when defining design matrix:
+	#model.matrix(~ cov1 + cov2 + cov3 + ..., data)
+
+  # this function expects raw counts values as expression data
+
+	library(edgeR)
+  library(limma)
+
+  # DGEList object using edgeR
+  y <- DGEList(counts=expression.data, group=factor)
+
+  # scale normalization using TMM method
+  y <- calcNormFactors(y)
+
+  # transform the counts using voom
+  y <- voom(y, design)
+
+  # fit the linear model for each gene
+  fit <- lmFit(y, design)
+
+  #empirical bayes statistics for differential expression
+  fit <- eBayes(fit)
+
+  # extract gene table with statistics
+  diff_expr_table <- topTable(fit, coef = ncol(design), number = Inf, sort.by = "p", p.value = 1, lfc = 0, adjust.method="BH")
+
+  diff_expr_table <- diff_expr_table %>%
+    mutate(genes = rownames(diff_expr_table)) %>%
+    left_join(gene.annot, by=c("genes" = "geneID")) %>%
+    dplyr::rename(FDR = adj.P.Val)
+
+	return(diff_expr_table)
+}
+
+
+
+
+
+enrich_test <- function(gene_set, universe, terms1, terms2, p_adj, q_value){
+
+  # functional enrichment function using clusterProfiler
+
+  library(clusterProfiler)
+
+  enr <- enricher(
+    gene = gene_set,
+    universe = universe,
+    TERM2GENE = terms1,
+    TERM2NAME = terms2,
+    pvalueCutoff = p_adj,
+    qvalueCutoff = q_value,
+    pAdjustMethod = "BH",
+    minGSSize = 5,
+    maxGSSize = 500)
+
+  enr <- enr@result %>% dplyr::select(Description, ID, Count, p.adjust, GeneRatio, BgRatio, geneID)
+  return(enr)
 }
 
 
@@ -145,6 +247,8 @@ normalize_countTable <- function(countTable){
 
 overlap_table_wgcna <- function(network1, network2, net1.label, net2.label, file.name, width, height){
 
+    library(WGCNA)
+
     # calculate and plot the overlap between two networks
 
     network1.colors = labels2colors(network1$colors)
@@ -193,6 +297,8 @@ overlap_table_wgcna <- function(network1, network2, net1.label, net2.label, file
 
 
 networks_comparison <- function(network1.fpkm.mat, network2.fpkm.mat, network1, network2, overlap.table, pval = 0.05, kme = 0.7){
+
+  library(WGCNA)
 
   #build a correlation table filled with zeros;
   #for common modules between datasets, a correlation of kME < 0.7 (correlation between the common genes) will indicate a loss of topology
