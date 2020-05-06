@@ -78,7 +78,7 @@ wgcna_modules <- networks %>%
   ungroup() %>%
   ggplot(mapping = aes(x = gender, y = mod, fill = gender )) +
     geom_bar(stat = "identity") +
-    facet_grid(tissue ~ type) +
+    facet_grid(tissue ~ type, scales = "fixed") +
     scale_fill_manual(values=c("#fbb4b9", "#74a9cf"), guide=F) +
     theme_classic() +
     theme(
@@ -88,9 +88,12 @@ wgcna_modules <- networks %>%
       legend.title=element_text(colour="black", size=15),
       strip.background = element_blank(),
       strip.text = element_text(colour="black", size=15)) +
+    scale_y_continuous(limits = c(NA, 40)) +
     labs(x = "Gender", y = "Number of modules")
 ggsave(filename="wgcna_modules.png", plot = wgcna_modules, path = "./plots/wgcna_networks", width=4, height=6)
+ggsave(filename="wgcna_modules.pdf", plot = wgcna_modules, path = "./plots/wgcna_networks", width=4, height=6)
 unlink("wgcna_modules.png")
+unlink("wgcna_modules.pdf")
 
 
 
@@ -102,12 +105,11 @@ wgcna_modules_genes <- networks %>%
   ungroup() %>%
   mutate_if(is.character, as.factor) %>%
   mutate(moduleN = as.character(moduleN)) %>%
-  mutate(moduleN = fct_reorder(moduleN, n_genes)) %>%
+  mutate(moduleN = fct_reorder(moduleN, n_genes), moduleL = fct_reorder(moduleL, n_genes)) %>%
   ggplot() +
-    geom_bar(mapping = aes(x = gender, y = n_genes, fill = moduleN), stat = "identity", position = "dodge") +
-    #geom_text(mapping = aes(x = gender, y = n_genes, group = moduleN, label = moduleN), position = position_dodge(width = 1), vjust = -0.5, size = 2, color="black") +
-    scale_fill_viridis(discrete=T, option = "C", guide=F) +
-    facet_grid(tissue ~ type, scales = "fixed") +
+    geom_col(mapping = aes(x = gender, y = n_genes, group = moduleN, fill = gender), position = "dodge", color = "black", lwd = 0.1) +
+    scale_fill_manual(values=c("#fbb4b9", "#74a9cf"), guide=F) +
+    facet_grid(tissue ~ type, scales = "free") +
     theme_classic() +
     theme(
       axis.title = element_text(colour="black", size=15),
@@ -118,11 +120,9 @@ wgcna_modules_genes <- networks %>%
       strip.text = element_text(colour="black", size=15)) +
     labs(x = "Gender", y = "Number of genes per module")
 ggsave(filename="wgcna_modules_genes.png", plot = wgcna_modules_genes, path = "./plots/wgcna_networks", width=10, height=6)
+ggsave(filename="wgcna_modules_genes.pdf", plot = wgcna_modules_genes, path = "./plots/wgcna_networks", width=10, height=6)
 unlink("wgcna_modules_genes.png")
-
-
-
-
+unlink("wgcna_modules_genes.pdf")
 
 
 
@@ -155,44 +155,40 @@ thyroid_gse <- read_tsv("./files/thyroid_modules_gsea_enr.txt") %>%
 
 thyroid_hyp_bp <- thyroid_hyp %>%
   filter(p.adjust < 0.05) %>%
-  filter(state2 == "female-specific" | state2 == "male-specific") %>%
-  ggplot(mapping = aes(x = state2, y = ..count.., fill = Description)) +
+  ggplot(mapping = aes(x = state, fill = Description)) +
     geom_bar(position = "dodge") +
-    facet_wrap(~ tissue) +
+    facet_grid(sex ~ tissue, scales = "free") +
     scale_fill_discrete(name = "Term") +
     theme_classic() +
     theme(
-      axis.title = element_text(colour="black", size=13),
-      axis.text.x = element_text(colour="black", size=10),
-      axis.text.y = element_text(colour="black", size=13),
-      legend.text=element_text(colour="black", size=13),
-      legend.title=element_text(colour="black", size=15),
+      axis.title = element_text(colour="black", size=12),
+      axis.text = element_text(colour="black", size=10),
+      legend.text=element_text(colour="black", size=10),
+      legend.title=element_text(colour="black", size=12),
       strip.background = element_blank(),
-      strip.text = element_text(colour="black", size=15)) +
-    scale_x_discrete(labels = c("Female\nspecific", "Male\nspecific")) +
-    labs(y = "Enriched terms (FDR < 5%)", x = "Sex")
-ggsave(filename="thyroid_networks_number_terms_hyp.png", plot = thyroid_hyp_bp, path = "./plots/wgcna_modules_characterization", width=5, height=3)
+      strip.text = element_text(colour="black", size=12)) +
+    labs(y = "Enriched terms (FDR < 5%)", x = "Sex") +
+    coord_flip()
+ggsave(filename="thyroid_networks_number_terms_hyp.png", plot = thyroid_hyp_bp, path = "./plots/wgcna_modules_characterization", width=7, height=3)
 unlink("thyroid_networks_number_terms_hyp.png")
 
 
 
 stomach_hyp_bp <- stomach_hyp %>%
   filter(p.adjust < 0.05) %>%
-  filter(state2 == "female-specific" | state2 == "male-specific") %>%
-  ggplot(mapping = aes(x = state2, y = ..count.., fill = Description)) +
+  ggplot(mapping = aes(x = state, fill = Description)) +
     geom_bar(position = "dodge") +
-    facet_wrap(~ tissue) +
+    facet_grid(sex ~ tissue, scales = "free") +
     scale_fill_discrete(name = "Term") +
     theme_classic() +
     theme(
-      axis.title = element_text(colour="black", size=13),
-      axis.text.x = element_text(colour="black", size=10),
-      axis.text.y = element_text(colour="black", size=13),
-      legend.text=element_text(colour="black", size=13),
-      legend.title=element_text(colour="black", size=15),
+      axis.title = element_text(colour="black", size=12),
+      axis.text = element_text(colour="black", size=10),
+      legend.text=element_text(colour="black", size=10),
+      legend.title=element_text(colour="black", size=12),
       strip.background = element_blank(),
-      strip.text = element_text(colour="black", size=15)) +
-    scale_x_discrete(labels = c("Male-specific")) +
-    labs(y = "Enriched terms (FDR < 5%)", x = "Sex")
-ggsave(filename="stomach_networks_number_terms_hyp.png", plot = stomach_hyp_bp, path = "./plots/wgcna_modules_characterization", width=5, height=3)
+      strip.text = element_text(colour="black", size=12)) +
+    labs(y = "Enriched terms (FDR < 5%)", x = "Sex") +
+    coord_flip()
+ggsave(filename="stomach_networks_number_terms_hyp.png", plot = stomach_hyp_bp, path = "./plots/wgcna_modules_characterization", width=7, height=3)
 unlink("stomach_networks_number_terms_hyp.png")

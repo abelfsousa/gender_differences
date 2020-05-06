@@ -20,6 +20,7 @@ library(survival)
 library(data.table)
 library(ranger)
 library(ggfortify)
+library(survminer)
 
 set.seed(123)
 
@@ -140,23 +141,25 @@ p_dis_genders <- bind_rows(
   greenyel_genes_males %>% dplyr::select(geneName, kruskal_pval) %>% mutate(gender = "males")) %>%
   ggplot(mapping = aes(x = gender, y = -log10(kruskal_pval), fill = gender)) +
   geom_boxplot() +
-  stat_compare_means(size = 3) +
+  stat_compare_means(size = 3, label.y = 16) +
   theme_classic() +
   theme(
-    axis.title = element_text(colour="black", size=14),
-    axis.text.y = element_text(colour="black", size=14),
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(colour="black", size=14),
     axis.text.x = element_blank(),
+    axis.text.y = element_text(colour="black", size=12),
     axis.ticks.x = element_blank(),
-    legend.text=element_text(colour="black", size=11),
-    legend.title=element_text(colour="black", size=13),
-    strip.background = element_blank(),
-    strip.text = element_text(colour="black", size=14),
+    axis.line.x = element_blank(),
+    legend.text=element_text(colour="black", size=10),
+    legend.title=element_text(colour="black", size=14),
     legend.position = "bottom") +
   scale_fill_manual(values=c("#fbb4b9", "#74a9cf"), name="Gender", labels = c("Female", "Male")) +
-  labs(x = "Gender", y = "P-value (-log10)", title = "") +
+  labs(x = "", y = "P-value (-log10)", title = "") +
   guides(fill=guide_legend(nrow=2))
-ggsave(filename="thyroid_p_dist_genders.png", plot=p_dis_genders, path = "./plots/wgcna_networks_traits/", width=2, height=4)
+ggsave(filename="thyroid_p_dist_genders.png", plot=p_dis_genders, path = "./plots/wgcna_networks_traits/", width=2, height=5)
+ggsave(filename="thyroid_p_dist_genders.pdf", plot=p_dis_genders, path = "./plots/wgcna_networks_traits/", width=2, height=5)
 unlink("thyroid_p_dist_genders.png")
+unlink("thyroid_p_dist_genders.pdf")
 
 
 
@@ -171,7 +174,7 @@ thyroid_females_fpkm_plot <- greenyel_genes_expr %>%
   ggplot(mapping = aes(x = histological_type, y = fpkm, fill = histological_type)) +
   geom_boxplot() +
   geom_text(data=greenyel_genes_expr_c, mapping=aes(x = histological_type, y = 1, label = counts)) +
-  stat_compare_means() +
+  stat_compare_means(label.y = 8) +
   facet_wrap( ~ geneName, ncol = 5, nrow = 1) +
   scale_fill_brewer(type = "qual", palette = "Set2", name = "Histological type") +
   theme_classic() +
@@ -180,15 +183,17 @@ thyroid_females_fpkm_plot <- greenyel_genes_expr %>%
     axis.text.y = element_text(colour="black", size=14),
     axis.text.x = element_blank(),
     axis.ticks.x = element_blank(),
-    legend.text=element_text(colour="black", size=13),
+    legend.text=element_text(colour="black", size=11),
     legend.title=element_text(colour="black", size=14),
     strip.background = element_blank(),
     strip.text = element_text(colour="black", size=14),
     legend.position = "bottom") +
   labs(x = "Histological type", y = "FPKM (log2)", title = "") +
-  guides(fill=guide_legend(nrow=3))
+  guides(fill=guide_legend(ncol=2))
 ggsave(filename="thyroid_tumour_greenyellow_hist_types.png", plot=thyroid_females_fpkm_plot, path = "./plots/wgcna_networks_traits/", width=15, height=5)
+ggsave(filename="thyroid_tumour_greenyellow_hist_types.pdf", plot=thyroid_females_fpkm_plot, path = "./plots/wgcna_networks_traits/", width=15, height=5)
 unlink("thyroid_tumour_greenyellow_hist_types.png")
+unlink("thyroid_tumour_greenyellow_hist_types.pdf")
 
 
 #males
@@ -307,15 +312,26 @@ dev.off()
 # sample clustering in each gene using FPKMs
 # use gaussian mixture model
 
-greenyel_genes_expr_cluster <- greenyel_genes_expr %>%
+#females
+greenyel_genes_expr_cluster_females <- greenyel_genes_expr %>%
   group_by(gene, geneName) %>%
-  mutate(class = as.character(mclust::Mclust(fpkm, G=2)$classification)) %>%
-  ungroup()
+  nest() %>%
+  ungroup() %>%
+  mutate(class = purrr::map(.x = data, .f = ~ mclust::Mclust(.x$fpkm, G=2)$classification )) %>%
+  unnest()
+
+#males
+greenyel_genes_expr_cluster_males <- greenyel_genes_males_expr %>%
+  group_by(gene, geneName) %>%
+  nest() %>%
+  ungroup() %>%
+  mutate(class = purrr::map(.x = data, .f = ~ mclust::Mclust(.x$fpkm, G=2)$classification )) %>%
+  unnest()
 
 
 
 # density plot for top 5 genes
-greenyel_genes_expr_cluster_density <- greenyel_genes_expr_cluster %>%
+greenyel_genes_expr_cluster_density <- greenyel_genes_expr_cluster_females %>%
   filter(geneName %in% c("SUCLG1", "GBAS", "MPC1", "GOT2", "SLC25A4")) %>%
   mutate_if(is.character, as.factor) %>%
   mutate(geneName = fct_reorder(geneName, kruskal_pval)) %>%
@@ -338,7 +354,7 @@ unlink("greenyel_genes_expr_cluster_density.png")
 
 
 # density plot for all hub genes
-greenyel_genes_expr_cluster_density2 <- greenyel_genes_expr_cluster %>%
+greenyel_genes_expr_cluster_density2 <- greenyel_genes_expr_cluster_females %>%
   mutate_if(is.character, as.factor) %>%
   mutate(geneName = fct_reorder(geneName, kruskal_pval)) %>%
   ggplot(mapping = aes(x = fpkm, fill = class, color = class)) +
@@ -365,7 +381,35 @@ unlink("greenyel_genes_expr_cluster_density2.png")
 # GBAS gene
 
 meta <- thyroid_tcga_clinical %>%
-  inner_join(greenyel_genes_expr_cluster %>% filter(geneName == "GBAS") %>% dplyr::select(sample, geneName, class), by = c("sample"))
+  inner_join(greenyel_genes_expr_cluster_females %>% filter(geneName == "GBAS") %>% dplyr::select(sample, geneName, class), by = c("sample"))
+
+km_fit <- survfit(Surv(OS.time, OS) ~ class, data=meta)
+km_pval <- survdiff(Surv(OS.time, OS) ~ class, data=meta)
+autoplot(km_fit)
+ggsurvplot(km_fit, data = meta, risk.table = F, conf.int = TRUE,
+  pval = TRUE) + labs(title = "Women")
+
+meta <- thyroid_tcga_clinical_males %>%
+  inner_join(greenyel_genes_expr_cluster_males %>% filter(geneName == "GBAS") %>% dplyr::select(sample, geneName, class), by = c("sample"))
+
+km_fit <- survfit(Surv(OS.time, OS) ~ class, data=meta)
+km_pval <- survdiff(Surv(OS.time, OS) ~ class, data=meta)
+autoplot(km_fit)
+ggsurvplot(km_fit, data = meta, risk.table = F, conf.int = TRUE,
+  pval = TRUE) + labs(title = "Men")
+
+
+
+meta <- thyroid_tcga_clinical %>%
+  inner_join(greenyel_genes_expr_cluster_females %>% filter(geneName == "GOT2") %>% dplyr::select(sample, geneName, class), by = c("sample"))
+
+km_fit <- survfit(Surv(OS.time, OS) ~ class, data=meta)
+km_pval <- survdiff(Surv(OS.time, OS) ~ class, data=meta)
+autoplot(km_fit)
+
+
+meta <- thyroid_tcga_clinical_males %>%
+  inner_join(greenyel_genes_expr_cluster_males %>% filter(geneName == "GOT2") %>% dplyr::select(sample, geneName, class), by = c("sample"))
 
 km_fit <- survfit(Surv(OS.time, OS) ~ class, data=meta)
 km_pval <- survdiff(Surv(OS.time, OS) ~ class, data=meta)

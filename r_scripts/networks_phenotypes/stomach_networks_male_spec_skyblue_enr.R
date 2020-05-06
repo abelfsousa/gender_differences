@@ -32,7 +32,7 @@ all_modules_gsea <- read_tsv("./files/stomach_modules_gsea_enr.txt")
 # plotting enrichment results
 skyblue_mod_hyp <- all_modules_enr %>%
   filter(tissue == "tumour", state == "male-specific", moduleL == "skyblue", p.adjust < 0.05) %>%
-  filter(Description %in% c("GO_BP", "CM", "KEGG", "POS") ) %>%
+  filter(Description != "POS") %>%
   mutate(log10_p = -log10(p.adjust)) %>%
   group_by(Description) %>%
   top_n(5, log10_p) %>%
@@ -42,25 +42,22 @@ skyblue_mod_hyp <- all_modules_enr %>%
   ggplot(mapping = aes(x=ID, y = Count, fill = log10_p)) +
   geom_bar(stat="identity") +
   theme_classic() +
-  facet_grid(Description ~ .,
+  facet_wrap( ~ Description,
     scales = "free",
-    space = "free_y",
-    labeller=labeller(
-      state = c("male-specific" = "Male-specific"),
-      Description = c("GO_BP" = "GO biological\nprocesses", "KEGG" = "KEGG", "ONCO" = "ONCOGENIC\ngene sets", "POS" = "Genomic\npositions", "CM" = "Cancer\nmodules", "IMMUNO" = "Immunogenic\ngene sets" ))) +
+    #space = "free_y",
+    labeller=labeller(Description = c("GO_BP" = "GO BP"))) +
   theme(
-    axis.title.x=element_text(colour="black", size=16),
+    axis.title.x=element_text(colour="black", size=14),
     axis.title.y=element_blank(),
-    axis.text.y=element_text(colour="black", size=13),
-    axis.text.x=element_text(colour="black", size=14),
+    axis.text.y=element_text(colour="black", size=12),
+    axis.text.x=element_text(colour="black", size=12),
     strip.text = element_text(colour="black", size=14),
     strip.background = element_blank(),
-    legend.text = element_text(colour="black", size=14),
-    legend.title = element_text(colour="black", size=16)) +
+    legend.text = element_text(colour="black", size=12),
+    legend.title = element_text(colour="black", size=14)) +
   coord_flip() +
-  scale_fill_viridis(option="D", name="Adj p-val\n(-log10)") +
-  scale_y_continuous(name = "Number of genes") +
-  labs(color="Sex")
+  scale_fill_viridis(option="D", name="Adjusted P-value\n(-log10)") +
+  scale_y_continuous(name = "Count")
 ggsave(filename="stomach_male_spc_skyblue_hyp.png", plot=skyblue_mod_hyp, path="./plots/wgcna_networks_traits/", width = 6, height = 3)
 ggsave(filename="stomach_male_spc_skyblue_hyp.pdf", plot=skyblue_mod_hyp, path="./plots/wgcna_networks_traits/", width = 6, height = 3)
 unlink("stomach_male_spc_skyblue_hyp.png")

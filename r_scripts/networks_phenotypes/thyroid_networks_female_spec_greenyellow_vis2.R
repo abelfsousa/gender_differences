@@ -114,19 +114,23 @@ comparing_distribution_stats <- comparing_distribution %>%
   summarise(median = median(weight))
 
 comparing_distribution_boxpl <- ggplot(data = comparing_distribution, mapping = aes(x = weight, fill = gender, color = gender)) +
-  geom_density(alpha = 0.5) +
-  geom_vline(data = comparing_distribution_stats, mapping=aes(xintercept=median, group=gender, color=gender), linetype="dashed", size=0.8) +
-  annotate("text", x = 0.15, y = 2.5, label = "Wilcoxon,\np < 2.2e-16") +
+  geom_density(alpha = 0.3) +
+  geom_vline(data = comparing_distribution_stats, mapping=aes(xintercept=median, group=gender, color=gender), linetype="dashed", size=0.8, show.legend=F) +
+  annotate("text", x = 0.85, y = 2.6, label = "Wilcoxon,\nP-value < 2.2e-16", size = 6.5) +
   theme_classic() +
   scale_fill_manual(values=c("#fbb4b9", "#74a9cf"), name="Gender", labels = c("Female", "Male")) +
   scale_color_manual(values=c("#fbb4b9", "#74a9cf"), name="Gender", labels = c("Female", "Male")) +
   theme(
-    axis.title.y = element_text(colour="black", size=15),
-    axis.title.x = element_text(colour="black", size=15),
-    axis.text.x = element_text(colour="black", size=12),
-    axis.text.y = element_text(colour="black", size=12),
-    legend.text = element_text(colour="black", size=12),
-    legend.title = element_text(colour="black", size=15)) +
-  labs(x = "Pearson's r", y = "Density")
-ggsave(filename="thyroid_greenyellow_module_cor_dist.png", plot = comparing_distribution_boxpl, path = "./plots/wgcna_networks_traits", width=6, height=4)
+    axis.title = element_text(colour="black", size=20),
+    axis.text = element_text(colour="black", size=18),
+    legend.text = element_text(colour="black", size=18),
+    legend.title = element_text(colour="black", size=20),
+    legend.position = "bottom") +
+  labs(x = "Pearson's r (absolute pairwise gene correlation)", y = "Density") +
+  scale_x_continuous(limits = c(0, 1)) +
+  scale_y_continuous(limits = c(0, 3)) +
+  guides(color = guide_legend(nrow=1))
+ggsave(filename="thyroid_greenyellow_module_cor_dist.png", plot = comparing_distribution_boxpl, path = "./plots/wgcna_networks_traits", width=7, height=4)
+ggsave(filename="thyroid_greenyellow_module_cor_dist.pdf", plot = comparing_distribution_boxpl, path = "./plots/wgcna_networks_traits", width=7, height=4)
 unlink("thyroid_greenyellow_module_cor_dist.png")
+unlink("thyroid_greenyellow_module_cor_dist.pdf")

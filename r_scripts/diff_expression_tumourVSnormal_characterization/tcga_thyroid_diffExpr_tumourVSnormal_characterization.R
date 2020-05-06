@@ -11,6 +11,7 @@ library(org.Hs.eg.db)
 library(VennDiagram)
 library(viridis)
 library(mygene)
+library(ggVennDiagram)
 
 
 
@@ -102,12 +103,21 @@ unlink("thyroid_males_females_signf_degs_venn.png")
 unlink("thyroid_males_females_signf_degs_venn.pdf")
 
 
+ggVenn <- bind_rows(
+  males_signf_degs %>% dplyr::select(geneName) %>% mutate(category = "male\nspecific"),
+  females_signf_degs %>% dplyr::select(geneName) %>% mutate(category = "female\nspecific")) %>%
+  group_by(category) %>%
+  summarise(geneName = list(geneName)) %>%
+  ungroup() %>%
+  mutate(geneName = set_names(geneName, category)) %>%
+  pull(geneName) %>%
+  ggVennDiagram(color = "black", category.names = NA) +
+  scale_fill_gradientn(colors=c("#fb9a99", "#1f78b4", "#b15928"), values = c(0,0.4,1), guide=F)
 
-
-
-
-
-
+ggsave(filename="thyroid_males_females_signf_degs_venn_gg.png", plot=ggVenn, path = "./plots/diff_expression_tumourVSnormal/", width=4, height=4)
+ggsave(filename="thyroid_males_females_signf_degs_venn_gg.pdf", plot=ggVenn, path = "./plots/diff_expression_tumourVSnormal/", width=4, height=4)
+unlink("thyroid_males_females_signf_degs_venn_gg.png")
+unlink("thyroid_males_females_signf_degs_venn_gg.pdf")
 
 
 
@@ -118,70 +128,29 @@ diff_expr_males_table <- diff_expr_males_table %>%
 diff_expr_females_table <- diff_expr_females_table %>%
     left_join(females_signf_degs[,c("genes", "state")], by="genes")
 
-
-
-# volcano plots
-diff_expr_males_vp <- ggplot( data = diff_expr_males_table, mapping = aes(x=logFC, y=-log10(adj.P.Val), colour=state, fill=fdr) ) +
-    geom_point(pch = 21) +
-    scale_fill_manual(values=c("#D7301F", "#FDCC8A"), name = "Significance") +
-    scale_colour_manual(values=c("#3182bd", "green"), na.value="#bdbdbd", labels=c("Common", "Male-specific", "Not DEGs"), name = "DEG type") +
-    geom_line(aes(x=0), color="black", linetype=2, size = 0.3) +
-    geom_line(aes(x=1), color="black", linetype=2, size = 0.3) +
-    geom_line(aes(x=-1), color="black", linetype=2, size = 0.3) +
-    geom_line(aes(y=-log10(0.05)), color="black", linetype=2, size = 0.3) +
-    theme_classic() +
-    theme(axis.title = element_text(colour="black", size=18),
-      axis.text = element_text(colour="black", size=16),
-      legend.text=element_text(colour="black", size=16),
-      legend.title=element_text(colour="black", size=18),
-      plot.title=element_text(colour="black", size=20)) +
-    labs(x = "logFC", y = "FDR (-log10)", title="Males")
-ggsave(filename="diff_expr_thyroid_males_tcga_tumourVSnormal.png", plot=diff_expr_males_vp, path = "./plots/diff_expression_tumourVSnormal/", width=6, height=6)
-unlink("diff_expr_thyroid_males_tcga_tumourVSnormal.png")
-
-diff_expr_females_vp <- ggplot( data = diff_expr_females_table, mapping = aes(x=logFC, y=-log10(adj.P.Val), colour=state, fill=fdr) ) +
-    geom_point(pch = 21) +
-    scale_fill_manual(values=c("#D7301F", "#FDCC8A"), name = "Significance") +
-    scale_colour_manual(values=c("#3182bd", "green"), na.value="#bdbdbd", labels=c("Common", "Female-specific", "Not DEGs"), name = "DEG type") +
-    geom_line(aes(x=0), color="black", linetype=2, size = 0.3) +
-    geom_line(aes(x=1), color="black", linetype=2, size = 0.3) +
-    geom_line(aes(x=-1), color="black", linetype=2, size = 0.3) +
-    geom_line(aes(y=-log10(0.05)), color="black", linetype=2, size = 0.3) +
-    theme_classic() +
-    theme(axis.title = element_text(colour="black", size=18),
-      axis.text = element_text(colour="black", size=16),
-      legend.text=element_text(colour="black", size=16),
-      legend.title=element_text(colour="black", size=18),
-      plot.title=element_text(colour="black", size=20)) +
-    labs(x = "logFC", y = "FDR (-log10)", title="Females")
-ggsave(filename="diff_expr_thyroid_females_tcga_tumourVSnormal.png", plot=diff_expr_females_vp, path = "./plots/diff_expression_tumourVSnormal/", width=6, height=6)
-unlink("diff_expr_thyroid_females_tcga_tumourVSnormal.png")
-
-
 diff_expr_table <- diff_expr_males_table %>%
   dplyr::select(genes, logFC, adj.P.Val, state, fdr) %>%
   mutate(sex = "Males") %>%
   bind_rows(diff_expr_females_table %>% dplyr::select(genes, logFC, adj.P.Val, state, fdr) %>% mutate(sex = "Females"))
 
 diff_expr_vp <- ggplot( data = diff_expr_table, mapping = aes(x=logFC, y=-log10(adj.P.Val), colour=state) ) +
-    geom_point(pch = 20) +
-    #scale_fill_manual(values=c("#D7301F", "#FDCC8A"), name = "Significance") +
-    #scale_colour_manual(values=c("#3182bd", "green", "yellow"), na.value="#bdbdbd", labels=c("Common", "Female-specific", "Male-specific", "Not DEGs"), name = "DEG type") +
-    scale_colour_manual(values=c("#fdbb84", "#dd1c77", "#3182bd"), na.value="#bdbdbd", labels=c("Common", "Female-specific", "Male-specific", "Not DEG"), name = "DEG type") +
-    facet_wrap( ~ sex, scales = "free") +
+    geom_point(size = 1) +
+    scale_colour_manual(values=c("#b15928", "#fb9a99", "#1f78b4"), na.value="#bdbdbd", labels=c("Common", "Female-specific", "Male-specific", "Not DEG"), name = "DEG type") +
+    facet_wrap( ~ sex, scales = "free_y") +
     geom_line(aes(x=0), color="black", linetype=2, size = 0.3) +
     geom_line(aes(x=1), color="black", linetype=2, size = 0.3) +
     geom_line(aes(x=-1), color="black", linetype=2, size = 0.3) +
     geom_line(aes(y=-log10(0.05)), color="black", linetype=2, size = 0.3) +
-    theme_classic() +
-    theme(axis.title = element_text(colour="black", size=18),
-      axis.text = element_text(colour="black", size=16),
-      legend.text=element_text(colour="black", size=16),
-      legend.title=element_text(colour="black", size=18),
-      strip.background = element_blank(),
-      strip.text.x = element_text(colour="black", size=18)) +
-    labs(x = "log2FC", y = "FDR (-log10)") +
-    guides(color = guide_legend(override.aes = list(size=4)))
+    theme(axis.title = element_text(colour="black", size=16),
+      axis.text = element_text(colour="black", size=12),
+      legend.text=element_text(colour="black", size=12),
+      legend.title=element_text(colour="black", size=16),
+      plot.title = element_text(colour="black", size=16, hjust = 0.5),
+      #strip.background = element_blank(),
+      strip.text.x = element_text(colour="black", size=16),
+      legend.position = "bottom") +
+    labs(x = "Fold-change (log2)", y = "FDR (-log10)", title = "Tumour vs Normal\nDifferential gene expression") +
+    guides(color=guide_legend(nrow=2))
 ggsave(filename="diff_expr_thyroid_all_tcga_tumourVSnormal.png", plot=diff_expr_vp, path = "./plots/diff_expression_tumourVSnormal/", width=10, height=5)
 unlink("diff_expr_thyroid_all_tcga_tumourVSnormal.png")
 

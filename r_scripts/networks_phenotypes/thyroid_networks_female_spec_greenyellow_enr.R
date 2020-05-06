@@ -31,14 +31,15 @@ all_modules_gsea <- read_tsv("./files/thyroid_modules_gsea_enr.txt")
 
 # plotting enrichment results
 greenyellow_mod_hyp <- all_modules_enr %>%
-  filter(tissue == "tumour", state == "female-specific", moduleL == "greenyellow", p.adjust < 0.05) %>%
-  filter(Description %in% c("GO_BP", "KEGG", "POS") ) %>%
+  filter(tissue == "tumour", state == "lowly-conserved", moduleL == "greenyellow", p.adjust < 0.05) %>%
+  filter(Description %in% c("GO_BP", "KEGG") ) %>%
   mutate(log10_p = -log10(p.adjust)) %>%
   group_by(Description) %>%
   top_n(5, log10_p) %>%
   ungroup() %>%
   mutate_if(is.character, as.factor) %>%
   mutate(ID = fct_reorder(ID, Count)) %>%
+  filter(str_detect(ID, "DISEASE", negate = T)) %>%
   ggplot(mapping = aes(x=ID, y = Count, fill = log10_p)) +
   geom_bar(stat="identity") +
   theme_classic() +
@@ -47,20 +48,19 @@ greenyellow_mod_hyp <- all_modules_enr %>%
     space = "free_y",
     labeller=labeller(
       state = c("female-specific" = "Female-specific"),
-      Description = c("GO_BP" = "GO biological\nprocesses", "KEGG" = "KEGG\npathways"))) +
-  theme(
-    axis.title.x=element_text(colour="black", size=16),
-    axis.title.y=element_blank(),
-    axis.text.y=element_text(colour="black", size=13),
-    axis.text.x=element_text(colour="black", size=14),
-    strip.text = element_text(colour="black", size=14),
-    strip.background = element_blank(),
-    legend.text = element_text(colour="black", size=14),
-    legend.title = element_text(colour="black", size=16)) +
+      Description = c("GO_BP" = "GO BP", "KEGG" = "KEGG"))) +
+    theme(
+      axis.title.x=element_text(colour="black", size=14),
+      axis.title.y=element_blank(),
+      axis.text.y=element_text(colour="black", size=12),
+      axis.text.x=element_text(colour="black", size=12),
+      strip.text = element_text(colour="black", size=14),
+      strip.background = element_blank(),
+      legend.text = element_text(colour="black", size=12),
+      legend.title = element_text(colour="black", size=14)) +
   coord_flip() +
-  scale_fill_viridis(option="D", name="Adj p-val\n(-log10)") +
-  scale_y_continuous(name = "Number of genes") +
-  labs(color="Sex")
+  scale_fill_viridis(option="D", name="Adjusted P-value\n(-log10)") +
+  scale_y_continuous(name = "Count")
 ggsave(filename="thyroid_female_spc_greenyellow_hyp.png", plot=greenyellow_mod_hyp, path="./plots/wgcna_networks_traits/", width = 9, height = 3)
 ggsave(filename="thyroid_female_spc_greenyellow_hyp.pdf", plot=greenyellow_mod_hyp, path="./plots/wgcna_networks_traits/", width = 9, height = 3)
 unlink("thyroid_female_spc_greenyellow_hyp.png")
@@ -69,14 +69,15 @@ unlink("thyroid_female_spc_greenyellow_hyp.pdf")
 
 
 greenyellow_mod_gsea <- all_modules_gsea %>%
-  filter(tissue == "tumour", state == "female-specific", moduleL == "greenyellow", p.adjust < 0.05) %>%
-  filter(Description %in% c("GO_BP", "KEGG", "POS") ) %>%
+  filter(tissue == "tumour", state == "lowly-conserved", moduleL == "greenyellow", p.adjust < 0.05) %>%
+  filter(Description %in% c("GO_BP", "KEGG") ) %>%
   mutate(log10_p = -log10(p.adjust)) %>%
   group_by(Description) %>%
   top_n(5, enrichmentScore) %>%
   ungroup() %>%
   mutate_if(is.character, as.factor) %>%
   mutate(ID = fct_reorder(ID, enrichmentScore)) %>%
+  filter(str_detect(ID, "DISEASE", negate = T)) %>%
   ggplot(mapping = aes(x=ID, y = enrichmentScore, fill = log10_p)) +
   geom_bar(stat="identity") +
   theme_classic() +
@@ -85,7 +86,7 @@ greenyellow_mod_gsea <- all_modules_gsea %>%
     space = "free_y",
     labeller=labeller(
       state2 = c("female-specific" = "Female-specific"),
-      Description = c("GO_BP" = "GO biological\nprocesses", "KEGG" = "KEGG\npathways", "POS" = "Positional\ngene sets", "CM" = "Cancer\nmodules"))) +
+      Description = c("GO_BP" = "GO BP", "KEGG" = "KEGG"))) +
   theme(
     axis.title.x=element_text(colour="black", size=15),
     axis.title.y=element_blank(),
@@ -97,8 +98,7 @@ greenyellow_mod_gsea <- all_modules_gsea %>%
     legend.title = element_text(colour="black", size=15)) +
   coord_flip() +
   scale_fill_viridis(option="D", name="Adj p-val\n(-log10)") +
-  scale_y_continuous(name = "Enrichment score") +
-  labs(color="Sex")
+  scale_y_continuous(name = "Enrichment score")
 ggsave(filename="thyroid_female_spc_greenyellow_gsea.png", plot=greenyellow_mod_gsea, path="./plots/wgcna_networks_traits/", width = 9, height = 3)
 ggsave(filename="thyroid_female_spc_greenyellow_gsea.pdf", plot=greenyellow_mod_gsea, path="./plots/wgcna_networks_traits/", width = 9, height = 3)
 unlink("thyroid_female_spc_greenyellow_gsea.png")
@@ -111,13 +111,9 @@ unlink("thyroid_female_spc_greenyellow_gsea.pdf")
 # load gene lists
 kegg <- read.gmt("./data/gene_lists/c2.cp.kegg.v6.2.symbols.gmt") %>% mutate(ont = str_replace(ont, "KEGG_", ""))
 kegg2 <- data.frame(ont = kegg$ont, name = "KEGG") %>% dplyr::distinct()
-go_bp <- read.gmt("./data/gene_lists/c5.bp.v6.2.symbols.gmt") %>% mutate(ont = str_replace(ont, "GO_", ""))
-go_bp2 <- data.frame(ont = go_bp$ont, name = "GO_BP") %>% dplyr::distinct()
-cm <- read.gmt("./data/gene_lists/c4.cm.v6.2.symbols.gmt")
-cm2 <- data.frame(ont = cm$ont, name = "CM") %>% dplyr::distinct()
 
-all_terms <- bind_rows(kegg, go_bp, cm) %>% mutate(ont = str_replace_all(ont, "_", " "))
-all_terms2 <- bind_rows(kegg2, go_bp2, cm2) %>% mutate(ont = str_replace_all(ont, "_", " "))
+all_terms <- kegg %>% mutate(ont = str_replace_all(ont, "_", " "))
+all_terms2 <- kegg2 %>% mutate(ont = str_replace_all(ont, "_", " "))
 
 
 
@@ -145,8 +141,14 @@ enr <- GSEA(
 
 
 
-greenyellow_gsea_ox_phospho <- gseaplot(enr, geneSetID = "OXIDATIVE PHOSPHORYLATION",  by = "runningScore", title = "OXIDATIVE PHOSPHORYLATION", color = "black", color.line = "green", color.vline = "red")
-ggsave(filename="greenyellow_gsea_ox_phospho.png", plot=greenyellow_gsea_ox_phospho, path="./plots/wgcna_networks_traits/", width = 6, height = 3)
-ggsave(filename="greenyellow_gsea_ox_phospho.pdf", plot=greenyellow_gsea_ox_phospho, path="./plots/wgcna_networks_traits/", width = 6, height = 3)
+greenyellow_gsea_ox_phospho <- gseaplot(enr, geneSetID = "OXIDATIVE PHOSPHORYLATION",  by = "runningScore", title = "OXIDATIVE PHOSPHORYLATION", color = "black", color.line = "darkblue", color.vline = "grey60") +
+  theme_classic() +
+  theme(
+    plot.title=element_blank(),
+    axis.title=element_text(colour="black", size=20),
+    axis.text=element_text(colour="black", size=18)) +
+  labs(x = "Ranked list of genes", y = "ES")
+ggsave(filename="greenyellow_gsea_ox_phospho.png", plot=greenyellow_gsea_ox_phospho, path="./plots/wgcna_networks_traits/", width = 5, height = 3)
+ggsave(filename="greenyellow_gsea_ox_phospho.pdf", plot=greenyellow_gsea_ox_phospho, path="./plots/wgcna_networks_traits/", width = 5, height = 3)
 unlink("greenyellow_gsea_ox_phospho.png")
 unlink("greenyellow_gsea_ox_phospho.pdf")

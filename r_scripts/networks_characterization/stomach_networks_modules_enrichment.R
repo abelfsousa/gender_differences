@@ -13,10 +13,10 @@
 
 library(tidyverse)
 library(RColorBrewer)
-library(clusterProfiler)
 library(viridis)
+library(clusterProfiler)
 
-
+source("./r_scripts/utils.R")
 
 # tumour networks
 males_tumour_modules <- read_tsv("./files/stomach_males_tumour_modules.txt") %>%
@@ -51,74 +51,26 @@ stomach_nets_bp <- stomach_nets %>%
   facet_wrap( ~ tissue,
     labeller=labeller(tissue = c("tumour" = "Tumour", "normal" = "Normal"))) +
   theme(
-    axis.title=element_text(colour="black", size=15),
-    axis.text=element_text(colour="black", size=13),
-    strip.text = element_text(colour="black", size=16),
+    axis.title=element_text(colour="black", size=14),
+    axis.text=element_text(colour="black", size=12),
+    strip.text = element_text(colour="black", size=14),
     strip.background = element_blank(),
-    legend.text = element_text(colour="black", size=13),
-    legend.title = element_text(colour="black", size=15)) +
-  labs(x = "Gender", y = "Number of modules", fill = "Conservation") +
+    legend.text = element_text(colour="black", size=11),
+    legend.title = element_text(colour="black", size=13),
+    legend.position = "bottom") +
+  labs(x = "Gender", y = "Count", fill = "Preservation") +
   scale_x_discrete(labels = c("Female", "Male")) +
-  scale_fill_manual(values = c("#3182bd", "#9ecae1", "#deebf7", "orange", "red")) +
-  scale_y_continuous(limits = c(0,12), breaks = seq(0,12,2))
-ggsave(filename="stomach_nets_number_modules.png", plot=stomach_nets_bp, path="./plots/wgcna_networks/", width = 6, height = 4)
-ggsave(filename="stomach_nets_number_modules.pdf", plot=stomach_nets_bp, path="./plots/wgcna_networks/", width = 6, height = 4)
+  scale_fill_manual(values = c("#3182bd", "#9ecae1", "#deebf7", "orange"), labels = c("highly-preserved", "moderately-preserved", "lowly-preserved", "male-specific")) +
+  scale_y_continuous(limits = c(NA,15)) +
+  guides(fill=guide_legend(nrow=2))
+ggsave(filename="stomach_nets_number_modules.png", plot=stomach_nets_bp, path="./plots/wgcna_networks/", width = 5, height = 3)
+ggsave(filename="stomach_nets_number_modules.pdf", plot=stomach_nets_bp, path="./plots/wgcna_networks/", width = 5, height = 3)
 unlink("stomach_nets_number_modules.png")
 unlink("stomach_nets_number_modules.pdf")
 
 
 
 # hypergeometric test of GO terms and KEGG pathways
-
-# enrichment function
-enrich_test <- function(gene_set, universe, terms1, terms2, p_adj, q_value){
-
-  enr <- enricher(
-    gene = gene_set,
-    universe = universe,
-    TERM2GENE = terms1,
-    TERM2NAME = terms2,
-    pvalueCutoff = p_adj,
-    qvalueCutoff = q_value,
-    pAdjustMethod = "BH",
-    minGSSize = 5,
-    maxGSSize = 500)
-
-  enr <- enr@result %>% dplyr::select(Description, ID, Count, p.adjust, GeneRatio, BgRatio, geneID)
-  return(list(enr))
-
-}
-
-gsea_test <- function(data, terms1, terms2, p_adj){
-
-  data <- as.data.frame(data)
-  glist <- data$kme
-  names(glist) <- data$geneName
-
-  tryCatch({
-    enr <- GSEA(
-    geneList = glist,
-    TERM2GENE = terms1,
-    TERM2NAME = terms2,
-    exponent = 1,
-    nPerm = 1000,
-    minGSSize = 10,
-    maxGSSize = 500,
-    pvalueCutoff = p_adj,
-    pAdjustMethod = "BH",
-    verbose = FALSE,
-    seed = FALSE,
-    by = "fgsea")
-
-    enr <- enr@result
-
-    if( sum(dim(enr) == c(0, 8)) == 2 ){
-      enr <- data.frame(ID=NA, Description=NA, setSize=NA, enrichmentScore=NA, NES=NA, pvalue=NA, p.adjust=NA, qvalues=NA, rank=NA, leading_edge=NA, core_enrichment=NA)
-    }
-    return(list(enr)) },
-    error = function(e) return(list(data.frame(ID=NA, Description=NA, setSize=NA, enrichmentScore=NA, NES=NA, pvalue=NA, p.adjust=NA, qvalues=NA, rank=NA, leading_edge=NA, core_enrichment=NA))) )
-}
-
 
 # load gene lists
 kegg <- read.gmt("./data/gene_lists/c2.cp.kegg.v6.2.symbols.gmt") %>% mutate(ont = str_replace(ont, "KEGG_", ""))
@@ -138,8 +90,8 @@ pos2 <- data.frame(ont = pos$ont, name = "POS") %>% dplyr::distinct()
 cm <- read.gmt("./data/gene_lists/c4.cm.v6.2.symbols.gmt")
 cm2 <- data.frame(ont = cm$ont, name = "CM") %>% dplyr::distinct()
 
-all_terms <- bind_rows(kegg, go_bp, onco, immuno, pos, cm) %>% mutate(ont = str_replace_all(ont, "_", " "))
-all_terms2 <- bind_rows(kegg2, go_bp2, onco2, immuno2, pos2, cm2) %>% mutate(ont = str_replace_all(ont, "_", " "))
+all_terms <- bind_rows(kegg, go_bp, pos) %>% mutate(ont = str_replace_all(ont, "_", " "))
+all_terms2 <- bind_rows(kegg2, go_bp2, pos2) %>% mutate(ont = str_replace_all(ont, "_", " "))
 
 
 universe_enr <- read.table("./files/stomach_males_tumour_fpkm_wgcna.txt", sep="\t", h=T) %>% colnames
@@ -161,12 +113,11 @@ universe_enr <- tcga.geneIDs.annot[tcga.geneIDs.annot$geneID %in% universe_enr, 
 all_modules_enr <- stomach_nets %>%
   dplyr::select(tissue, sex, moduleL, state, state2, geneName) %>%
   group_by(tissue, sex, moduleL, state, state2) %>%
-  mutate(geneName = list(geneName)) %>%
-  unique() %>%
-  rowwise() %>%
-  mutate(enr = enrich_test(geneName, universe_enr, all_terms, all_terms2, 1, 1)) %>%
+  summarise(geneName = list(geneName)) %>%
+  ungroup() %>%
+  mutate(enr = map(.x = geneName, .f = enrich_test, universe = universe_enr, terms1 = all_terms, terms2 = all_terms2, p_adj=1, q_value=1)) %>%
   dplyr::select(-geneName) %>%
-  unnest()
+  unnest(cols = c(enr))
 write.table(all_modules_enr, "./files/stomach_modules_hypergeo_enr.txt", sep="\t", quote=F, row.names=F)
 
 
@@ -176,12 +127,12 @@ all_modules_gsea <- stomach_nets %>%
   dplyr::select(tissue, sex, moduleL, state, state2, kme, geneName) %>%
   group_by(tissue, sex, moduleL, state, state2) %>%
   dplyr::arrange(desc(kme), .by_group = TRUE) %>%
+  group_by(tissue, sex, moduleL, state, state2) %>%
+  nest() %>%
   ungroup() %>%
-  nest(-c(tissue, sex, moduleL, state, state2)) %>%
-  rowwise() %>%
-  mutate(enr = gsea_test(data, all_terms, all_terms2, 1)) %>%
+  mutate(enr = map(.x = data, .f = gsea_test, terms1 = all_terms, terms2 = all_terms2, p_adj=1)) %>%
   dplyr::select(-data) %>%
-  unnest()
+  unnest(cols = c(enr))
 write.table(all_modules_gsea, "./files/stomach_modules_gsea_enr.txt", sep="\t", quote=F, row.names=F)
 
 
@@ -189,163 +140,157 @@ write.table(all_modules_gsea, "./files/stomach_modules_gsea_enr.txt", sep="\t", 
 all_modules_enr_summary <- all_modules_enr %>%
   filter(p.adjust < 0.05) %>%
   group_by(tissue, sex, state, state2, Description, ID) %>%
-  dplyr::summarise(mod = paste(moduleL, collapse=" "))
-
+  dplyr::summarise(mod = paste(moduleL, collapse=" ")) %>%
+  ungroup()
 
 
 
 
 # plotting enrichment results
 
-tumour_gender_sp_mod_hyp <- all_modules_enr %>%
-  filter(p.adjust < 0.05 & tissue == "tumour" & (state2 == "female-specific" | state2 == "male-specific" ) ) %>%
-  filter(Description %in% c("GO_BP", "CM", "KEGG", "POS") ) %>%
-  mutate(log10_p = -log10(p.adjust)) %>%
-  group_by(state2, Description) %>%
-  top_n(5, log10_p) %>%
-  ungroup() %>%
-  mutate_if(is.character, as.factor) %>%
-  mutate(ID = fct_reorder(ID, Count)) %>%
-  ggplot(mapping = aes(x=ID, y = Count, fill = log10_p)) +
-  geom_bar(stat="identity") +
-  theme_classic() +
-  facet_grid(Description ~ state2,
-    scales = "free",
-    space = "free_y",
-    labeller=labeller(
-      state2 = c("male-specific" = "Male-specific", "conserved" = "Conserved"),
-      Description = c("GO_BP" = "GO BP", "KEGG" = "KEGG", "ONCO" = "ONCOGENIC\ngene sets", "POS" = "Pos", "CM" = "Cancer\nmodules"))) +
-  theme(
-    axis.title.x=element_text(colour="black", size=16),
-    axis.title.y=element_blank(),
-    axis.text.y=element_text(colour="black", size=13),
-    axis.text.x=element_text(colour="black", size=14),
-    strip.text = element_text(colour="black", size=15),
-    strip.background = element_blank(),
-    legend.text = element_text(colour="black", size=14),
-    legend.title = element_text(colour="black", size=16)) +
-  coord_flip() +
-  scale_fill_viridis(option="D", name="Adj p-val\n(-log10)") +
-  scale_y_continuous(name = "Number of genes") +
-  labs(color="Sex")
-ggsave(filename="stomach_tumour_male_female_spc_hyp.png", plot=tumour_gender_sp_mod_hyp, path="./plots/wgcna_modules_enrichment/", width = 10, height = 5)
-ggsave(filename="stomach_tumour_male_female_spc_hyp.pdf", plot=tumour_gender_sp_mod_hyp, path="./plots/wgcna_modules_enrichment/", width = 10, height = 5)
-unlink("stomach_tumour_male_female_spc_hyp.png")
-unlink("stomach_tumour_male_female_spc_hyp.pdf")
-
-
-normal_gender_sp_mod_hyp <- all_modules_enr %>%
-  filter(p.adjust < 0.05, tissue == "normal") %>%
-  mutate(log10_p = -log10(p.adjust)) %>%
-  group_by(state2, Description) %>%
-  top_n(5, log10_p) %>%
-  ungroup() %>%
-  mutate_if(is.character, as.factor) %>%
-  mutate(ID = fct_reorder(ID, Count)) %>%
-  ggplot(mapping = aes(x=ID, y = Count, fill = log10_p, color = sex)) +
-  geom_bar(stat="identity") +
-  theme_classic() +
-  facet_grid(Description ~ state2,
-    scales = "free",
-    space = "free_y",
-    labeller=labeller(
-      state2 = c("conserved" = "Conserved"),
-      Description = c("GO_BP" = "GO BP", "KEGG" = "KEGG\npathways", "ONCO" = "ONCOGENIC\ngene sets", "POS" = "Positional\ngene sets", "CM" = "Cancer\nmodules"))) +
-  theme(
-    axis.title.x=element_text(colour="black", size=16),
-    axis.title.y=element_blank(),
-    axis.text.y=element_text(colour="black", size=13),
-    axis.text.x=element_text(colour="black", size=14),
-    strip.text = element_text(colour="black", size=15),
-    strip.background = element_blank(),
-    legend.text = element_text(colour="black", size=14),
-    legend.title = element_text(colour="black", size=16)) +
-  coord_flip() +
-  scale_fill_viridis(option="D", name="Adj p-val\n(-log10)") +
-  scale_y_continuous(name = "Number of genes") +
-  labs(color="Sex")
-ggsave(filename="stomach_normal_male_female_spc_hyp.png", plot=normal_gender_sp_mod_hyp, path="./plots/wgcna_modules_enrichment/", width = 14, height = 10)
-ggsave(filename="stomach_normal_male_female_spc_hyp.pdf", plot=normal_gender_sp_mod_hyp, path="./plots/wgcna_modules_enrichment/", width = 14, height = 10)
-unlink("stomach_normal_male_female_spc_hyp.png")
-unlink("stomach_normal_male_female_spc_hyp.pdf")
-
-
-
-
-
-
-
-
-tumour_gender_sp_mod_gsea <- all_modules_gsea %>%
-  filter(p.adjust < 0.05 & tissue == "tumour" & (state2 == "female-specific" | state2 == "male-specific" ) ) %>%
-  mutate(log10_p = -log10(p.adjust)) %>%
-  group_by(state2, Description) %>%
-  top_n(5, enrichmentScore) %>%
-  ungroup() %>%
-  mutate_if(is.character, as.factor) %>%
-  mutate(ID = fct_reorder(ID, enrichmentScore)) %>%
-  ggplot(mapping = aes(x=ID, y = enrichmentScore, fill = log10_p)) +
-  geom_bar(stat="identity") +
-  theme_classic() +
-  facet_grid(Description ~ state2,
-    scales = "free",
-    space = "free_y",
-    labeller=labeller(
-      state2 = c("male-specific" = "Male-specific", "conserved" = "Conserved"),
-      Description = c("IMMUNO" = "Immuno", "GO_BP" = "GO BP", "KEGG" = "KEGG\npathways", "ONCO" = "ONCOGENIC\ngene sets", "POS" = "Positional\ngene sets", "CM" = "Cancer\nmodules"))) +
-  theme(
-    axis.title.x=element_text(colour="black", size=15),
-    axis.title.y=element_blank(),
-    axis.text.y=element_text(colour="black", size=12),
-    axis.text.x=element_text(colour="black", size=13),
-    strip.text = element_text(colour="black", size=14),
-    strip.background = element_blank(),
-    legend.text = element_text(colour="black", size=13),
-    legend.title = element_text(colour="black", size=15)) +
-  coord_flip() +
-  scale_fill_viridis(option="D", name="Adj p-val\n(-log10)") +
-  scale_y_continuous(name = "Enrichment score") +
-  labs(color="Sex")
-ggsave(filename="stomach_tumour_male_female_spc_gsea.png", plot=tumour_gender_sp_mod_gsea, path="./plots/wgcna_modules_enrichment/", width = 10, height = 4)
-ggsave(filename="stomach_tumour_male_female_spc_gsea.pdf", plot=tumour_gender_sp_mod_gsea, path="./plots/wgcna_modules_enrichment/", width = 10, height = 4)
-unlink("stomach_tumour_male_female_spc_gsea.png")
-unlink("stomach_tumour_male_female_spc_gsea.pdf")
-
-
-normal_gender_sp_mod_gsea <- all_modules_gsea %>%
-  filter(p.adjust < 0.05, tissue == "normal") %>%
-  mutate(log10_p = -log10(p.adjust)) %>%
-  group_by(state2, Description) %>%
-  top_n(5, enrichmentScore) %>%
-  ungroup() %>%
-  mutate_if(is.character, as.factor) %>%
-  mutate(ID = fct_reorder(ID, enrichmentScore)) %>%
-  ggplot(mapping = aes(x=ID, y = enrichmentScore, fill = log10_p, color = sex)) +
-  geom_bar(stat="identity") +
-  theme_classic() +
-  facet_grid(Description ~ state2,
-    scales = "free",
-    space = "free_y",
-    labeller=labeller(
-      state2 = c("conserved" = "Conserved"),
-      Description = c("GO_BP" = "GO BP", "KEGG" = "KEGG\npathways", "ONCO" = "ONCOGENIC\ngene sets", "POS" = "Positional\ngene sets", "CM" = "Cancer\nmodules"))) +
-  theme(
-    axis.title.x=element_text(colour="black", size=15),
-    axis.title.y=element_blank(),
-    axis.text.y=element_text(colour="black", size=12),
-    axis.text.x=element_text(colour="black", size=13),
-    strip.text = element_text(colour="black", size=14),
-    strip.background = element_blank(),
-    legend.text = element_text(colour="black", size=13),
-    legend.title = element_text(colour="black", size=15)) +
-  coord_flip() +
-  scale_fill_viridis(option="D", name="Adj p-val\n(-log10)") +
-  scale_y_continuous(name = "Enrichment score") +
-  labs(color="Sex")
-ggsave(filename="stomach_normal_male_female_spc_gsea.png", plot=normal_gender_sp_mod_gsea, path="./plots/wgcna_modules_enrichment/", width = 11, height = 7)
-ggsave(filename="stomach_normal_male_female_spc_gsea.pdf", plot=normal_gender_sp_mod_gsea, path="./plots/wgcna_modules_enrichment/", width = 11, height = 7)
-unlink("stomach_normal_male_female_spc_gsea.png")
-unlink("stomach_normal_male_female_spc_gsea.pdf")
+# tumour_gender_sp_mod_hyp <- all_modules_enr %>%
+#   filter(p.adjust < 0.05 & tissue == "tumour" & (state2 == "female-specific" | state2 == "male-specific" ) ) %>%
+#   filter(Description %in% c("GO_BP", "CM", "KEGG", "POS") ) %>%
+#   mutate(log10_p = -log10(p.adjust)) %>%
+#   group_by(state2, Description) %>%
+#   top_n(5, log10_p) %>%
+#   ungroup() %>%
+#   mutate_if(is.character, as.factor) %>%
+#   mutate(ID = fct_reorder(ID, Count)) %>%
+#   ggplot(mapping = aes(x=ID, y = Count, fill = log10_p)) +
+#   geom_bar(stat="identity") +
+#   theme_classic() +
+#   facet_grid(Description ~ state2,
+#     scales = "free",
+#     space = "free_y",
+#     labeller=labeller(
+#       state2 = c("male-specific" = "Male-specific", "conserved" = "Conserved"),
+#       Description = c("GO_BP" = "GO BP", "KEGG" = "KEGG", "ONCO" = "ONCOGENIC\ngene sets", "POS" = "Pos", "CM" = "Cancer\nmodules"))) +
+#   theme(
+#     axis.title.x=element_text(colour="black", size=16),
+#     axis.title.y=element_blank(),
+#     axis.text.y=element_text(colour="black", size=13),
+#     axis.text.x=element_text(colour="black", size=14),
+#     strip.text = element_text(colour="black", size=15),
+#     strip.background = element_blank(),
+#     legend.text = element_text(colour="black", size=14),
+#     legend.title = element_text(colour="black", size=16)) +
+#   coord_flip() +
+#   scale_fill_viridis(option="D", name="Adj p-val\n(-log10)") +
+#   scale_y_continuous(name = "Number of genes") +
+#   labs(color="Sex")
+# ggsave(filename="stomach_tumour_male_female_spc_hyp.png", plot=tumour_gender_sp_mod_hyp, path="./plots/wgcna_modules_enrichment/", width = 10, height = 5)
+# ggsave(filename="stomach_tumour_male_female_spc_hyp.pdf", plot=tumour_gender_sp_mod_hyp, path="./plots/wgcna_modules_enrichment/", width = 10, height = 5)
+# unlink("stomach_tumour_male_female_spc_hyp.png")
+# unlink("stomach_tumour_male_female_spc_hyp.pdf")
+#
+#
+# normal_gender_sp_mod_hyp <- all_modules_enr %>%
+#   filter(p.adjust < 0.05, tissue == "normal") %>%
+#   mutate(log10_p = -log10(p.adjust)) %>%
+#   group_by(state2, Description) %>%
+#   top_n(5, log10_p) %>%
+#   ungroup() %>%
+#   mutate_if(is.character, as.factor) %>%
+#   mutate(ID = fct_reorder(ID, Count)) %>%
+#   ggplot(mapping = aes(x=ID, y = Count, fill = log10_p, color = sex)) +
+#   geom_bar(stat="identity") +
+#   theme_classic() +
+#   facet_grid(Description ~ state2,
+#     scales = "free",
+#     space = "free_y",
+#     labeller=labeller(
+#       state2 = c("conserved" = "Conserved"),
+#       Description = c("GO_BP" = "GO BP", "KEGG" = "KEGG\npathways", "ONCO" = "ONCOGENIC\ngene sets", "POS" = "Positional\ngene sets", "CM" = "Cancer\nmodules"))) +
+#   theme(
+#     axis.title.x=element_text(colour="black", size=16),
+#     axis.title.y=element_blank(),
+#     axis.text.y=element_text(colour="black", size=13),
+#     axis.text.x=element_text(colour="black", size=14),
+#     strip.text = element_text(colour="black", size=15),
+#     strip.background = element_blank(),
+#     legend.text = element_text(colour="black", size=14),
+#     legend.title = element_text(colour="black", size=16)) +
+#   coord_flip() +
+#   scale_fill_viridis(option="D", name="Adj p-val\n(-log10)") +
+#   scale_y_continuous(name = "Number of genes") +
+#   labs(color="Sex")
+# ggsave(filename="stomach_normal_male_female_spc_hyp.png", plot=normal_gender_sp_mod_hyp, path="./plots/wgcna_modules_enrichment/", width = 14, height = 10)
+# ggsave(filename="stomach_normal_male_female_spc_hyp.pdf", plot=normal_gender_sp_mod_hyp, path="./plots/wgcna_modules_enrichment/", width = 14, height = 10)
+# unlink("stomach_normal_male_female_spc_hyp.png")
+# unlink("stomach_normal_male_female_spc_hyp.pdf")
+#
+#
+# tumour_gender_sp_mod_gsea <- all_modules_gsea %>%
+#   filter(p.adjust < 0.05 & tissue == "tumour" & (state2 == "female-specific" | state2 == "male-specific" ) ) %>%
+#   mutate(log10_p = -log10(p.adjust)) %>%
+#   group_by(state2, Description) %>%
+#   top_n(5, enrichmentScore) %>%
+#   ungroup() %>%
+#   mutate_if(is.character, as.factor) %>%
+#   mutate(ID = fct_reorder(ID, enrichmentScore)) %>%
+#   ggplot(mapping = aes(x=ID, y = enrichmentScore, fill = log10_p)) +
+#   geom_bar(stat="identity") +
+#   theme_classic() +
+#   facet_grid(Description ~ state2,
+#     scales = "free",
+#     space = "free_y",
+#     labeller=labeller(
+#       state2 = c("male-specific" = "Male-specific", "conserved" = "Conserved"),
+#       Description = c("IMMUNO" = "Immuno", "GO_BP" = "GO BP", "KEGG" = "KEGG\npathways", "ONCO" = "ONCOGENIC\ngene sets", "POS" = "Positional\ngene sets", "CM" = "Cancer\nmodules"))) +
+#   theme(
+#     axis.title.x=element_text(colour="black", size=15),
+#     axis.title.y=element_blank(),
+#     axis.text.y=element_text(colour="black", size=12),
+#     axis.text.x=element_text(colour="black", size=13),
+#     strip.text = element_text(colour="black", size=14),
+#     strip.background = element_blank(),
+#     legend.text = element_text(colour="black", size=13),
+#     legend.title = element_text(colour="black", size=15)) +
+#   coord_flip() +
+#   scale_fill_viridis(option="D", name="Adj p-val\n(-log10)") +
+#   scale_y_continuous(name = "Enrichment score") +
+#   labs(color="Sex")
+# ggsave(filename="stomach_tumour_male_female_spc_gsea.png", plot=tumour_gender_sp_mod_gsea, path="./plots/wgcna_modules_enrichment/", width = 10, height = 4)
+# ggsave(filename="stomach_tumour_male_female_spc_gsea.pdf", plot=tumour_gender_sp_mod_gsea, path="./plots/wgcna_modules_enrichment/", width = 10, height = 4)
+# unlink("stomach_tumour_male_female_spc_gsea.png")
+# unlink("stomach_tumour_male_female_spc_gsea.pdf")
+#
+#
+# normal_gender_sp_mod_gsea <- all_modules_gsea %>%
+#   filter(p.adjust < 0.05, tissue == "normal") %>%
+#   mutate(log10_p = -log10(p.adjust)) %>%
+#   group_by(state2, Description) %>%
+#   top_n(5, enrichmentScore) %>%
+#   ungroup() %>%
+#   mutate_if(is.character, as.factor) %>%
+#   mutate(ID = fct_reorder(ID, enrichmentScore)) %>%
+#   ggplot(mapping = aes(x=ID, y = enrichmentScore, fill = log10_p, color = sex)) +
+#   geom_bar(stat="identity") +
+#   theme_classic() +
+#   facet_grid(Description ~ state2,
+#     scales = "free",
+#     space = "free_y",
+#     labeller=labeller(
+#       state2 = c("conserved" = "Conserved"),
+#       Description = c("GO_BP" = "GO BP", "KEGG" = "KEGG\npathways", "ONCO" = "ONCOGENIC\ngene sets", "POS" = "Positional\ngene sets", "CM" = "Cancer\nmodules"))) +
+#   theme(
+#     axis.title.x=element_text(colour="black", size=15),
+#     axis.title.y=element_blank(),
+#     axis.text.y=element_text(colour="black", size=12),
+#     axis.text.x=element_text(colour="black", size=13),
+#     strip.text = element_text(colour="black", size=14),
+#     strip.background = element_blank(),
+#     legend.text = element_text(colour="black", size=13),
+#     legend.title = element_text(colour="black", size=15)) +
+#   coord_flip() +
+#   scale_fill_viridis(option="D", name="Adj p-val\n(-log10)") +
+#   scale_y_continuous(name = "Enrichment score") +
+#   labs(color="Sex")
+# ggsave(filename="stomach_normal_male_female_spc_gsea.png", plot=normal_gender_sp_mod_gsea, path="./plots/wgcna_modules_enrichment/", width = 11, height = 7)
+# ggsave(filename="stomach_normal_male_female_spc_gsea.pdf", plot=normal_gender_sp_mod_gsea, path="./plots/wgcna_modules_enrichment/", width = 11, height = 7)
+# unlink("stomach_normal_male_female_spc_gsea.png")
+# unlink("stomach_normal_male_female_spc_gsea.pdf")
 
 
 

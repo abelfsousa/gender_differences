@@ -158,6 +158,7 @@ limma_diff_expression <- function(design, factor, expression.data, gene.annot){
 enrich_test <- function(gene_set, universe, terms1, terms2, p_adj, q_value){
 
   # functional enrichment function using clusterProfiler
+  # hypergeometric test
 
   library(clusterProfiler)
 
@@ -177,7 +178,43 @@ enrich_test <- function(gene_set, universe, terms1, terms2, p_adj, q_value){
 }
 
 
-remove_batch <- function(gene, data, covar){
+gsea_test <- function(data, terms1, terms2, p_adj){
+
+  # functional enrichment function using clusterProfiler
+  # gsea test
+
+  library(clusterProfiler)
+
+  data <- as.data.frame(data)
+  glist <- data$kme
+  names(glist) <- data$geneName
+
+  tryCatch( {
+    enr <- GSEA(
+    geneList = glist,
+    TERM2GENE = terms1,
+    TERM2NAME = terms2,
+    exponent = 1,
+    nPerm = 1000,
+    minGSSize = 10,
+    maxGSSize = 500,
+    pvalueCutoff = p_adj,
+    pAdjustMethod = "BH",
+    verbose = FALSE,
+    seed = FALSE,
+    by = "fgsea")
+
+    enr <- enr@result
+
+    if( sum(dim(enr) == c(0, 8)) == 2 ){
+      enr <- data.frame(ID=NA, Description=NA, setSize=NA, enrichmentScore=NA, NES=NA, pvalue=NA, p.adjust=NA, qvalues=NA, rank=NA, leading_edge=NA, core_enrichment=NA)
+    }
+    return(enr) },
+    error = function(e) return(data.frame(ID=NA, Description=NA, setSize=NA, enrichmentScore=NA, NES=NA, pvalue=NA, p.adjust=NA, qvalues=NA, rank=NA, leading_edge=NA, core_enrichment=NA)) )
+}
+
+
+remove_batch1 <- function(gene, data, covar){
 
     # remove batch effects by regressing them out
 
@@ -194,6 +231,52 @@ remove_batch <- function(gene, data, covar){
 
     return(residuals(lreg))
 }
+
+
+# function to regress-out a set of covariates from a variable fitting a linear model
+# the first argument must be a data.frame with the following columns:
+# column1 - sample identifiers; column2 - response variable; others - covariates to regress-out
+# other covariates can be passed using the covs argument
+# covs is a data.frame with one column "sample" containing the same sample identifiers as df
+remove_batch2 <- function(df, covs = NULL, ztransf = FALSE){
+
+  # additional covariates to regress-out
+  if(!is.null(covs)){
+    df <- df %>%
+      inner_join(covs, by = "sample")
+  }
+
+  # remove NAs from the dataset
+  dfM <- na.exclude(df)
+
+  # remove sample column
+  samples <- dfM$sample
+  dfM <- dfM %>%
+    select(-sample)
+
+  # z-score transform numeric variables if specified
+  if(ztransf){
+    dfM <- dfM %>%
+      mutate_if(.predicate = is.numeric, .funs = ~ scale(.x)[,1])
+  }
+
+  # define response and explanatory variables
+  resp <- colnames(dfM)[1]
+  expl <- colnames(dfM)[-1]
+
+
+  # set up the formula
+  f <- as.formula(paste0(resp, "~", paste(expl, collapse = "+")))
+
+  # fit the model and get the residuals
+  reg <- lm(f, dfM)
+  reg_residual <- residuals(reg)
+
+  res = tibble(sample = samples, residual = reg_residual)
+
+  return(res)
+}
+
 
 
 

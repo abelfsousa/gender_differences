@@ -2,6 +2,7 @@
 data/
 files/
 r_workspaces/
+r_objects/
 
 #ignore files
 .DS_Store

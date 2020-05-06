@@ -15,6 +15,8 @@ library(tidyverse)
 library(WGCNA)
 library(data.table)
 library(gplots)
+library(ComplexHeatmap)
+library(circlize)
 
 
 
@@ -74,32 +76,78 @@ tumourME_males_cor <- cor(
   method = "pearson") %>%
   abs()
 
+tumourME_males_y <- tumourME_males %>%
+  dplyr::select(sample, MEdarkolivegreen, MEskyblue, MEsteelblue) %>%
+  pivot_longer(-sample, names_to = "ME", values_to = "ME_value")
 
-pdf(file="./plots/wgcna_networks_traits/stomach_tumourME_males_cor.pdf", height=3, width=5)
-par(oma = c(0,0,0,5))
-heatmap.2(
-  x = tumourME_males_cor,
-  trace="none",
-  Rowv=TRUE,
-  Colv=TRUE,
-  dendrogram="both",
-  cexRow=1.3,
-  cexCol = 1.6,
-  key=TRUE,
-  keysize=2,
-  symkey=FALSE,
-  key.title="Pearson's r",
-  key.xlab = NA,
-  key.ylab = NA,
-  key.par = list(cex.axis = 1),
-  #srtCol=0,
-  density.info = "none",
-  #col=bluered(100),
-  col = colorpanel(100, "white", "orange", "red"),
-  #ColSideColors = stomach_tumour_gender_diff_networks %>% filter(network == "males") %>% pull(colors),
-  #labCol = tumourME_males_cor %>% colnames %>% str_replace("ME", ""),
-  labCol = c("M1", "M3", "M2"),
-  labRow = c("Survival (days)", "Histological type", "Tumour stage", "Histological grade"))
+tumourME_males_x <- tumourME_males %>%
+  dplyr::select(sample, OS.time, histological_type2, ajcc_tumor_stage2) %>%
+  pivot_longer(-sample, names_to = "feature", values_to = "feature_value")
+
+linear_model <- function(mat){
+  model <- lm(ME_value ~ feature_value, data = mat)
+
+  rsq <- summary(model)$r.squared
+  anovaP <- broom::tidy(aov(model)) %>%
+    filter(term == "feature_value") %>%
+    pull(p.value)
+
+  res <- tibble(rsquared = rsq, pvalue = anovaP)
+
+}
+
+tumourME_males_mod <- inner_join(tumourME_males_y, tumourME_males_x, by = "sample")
+tumourME_males_mod <- tumourME_males_mod %>%
+  group_by(ME, feature) %>%
+  nest() %>%
+  ungroup() %>%
+  mutate(data = map2(feature, data, ~ if(.x != "OS.time"){mutate_at(.y, 3, as.character)}else{.y})) %>%
+  mutate(model = map(.x = data, .f = linear_model)) %>%
+  select(-data) %>%
+  unnest(model)
+
+tumourME_males_pval <- tumourME_males_mod %>%
+  select(-rsquared) %>%
+  mutate(pvalue = -log10(pvalue)) %>%
+  pivot_wider(names_from = "feature", values_from = "pvalue") %>%
+  column_to_rownames(var = "ME") %>%
+  t()
+
+tumourME_males_rsq <- tumourME_males_mod %>%
+  select(-pvalue) %>%
+  mutate(rsquared = round(rsquared, 2)) %>%
+  pivot_wider(names_from = "feature", values_from = "rsquared") %>%
+  column_to_rownames(var = "ME") %>%
+  t()
+
+
+pdf(file="./plots/wgcna_networks_traits/stomach_tumourME_males_cor.pdf", height=1.5, width=4)
+mat <- tumourME_males_pval
+mat2 <- tumourME_males_rsq
+column_labels = structure(c("M1", "M2", "M3"), names = colnames(mat))
+row_labels = structure(c("Survival (days)", "Histological type", "Tumour stage"), names = rownames(mat))
+
+#col_fun = colorRamp2(c(0, 10, 18), brewer.pal(3, "Reds"))
+col_fun = colorRamp2(c(0, 2.5), c("white", "red"))
+print(Heatmap(
+  matrix = mat,
+  name = "P-value\n(-log10)",
+  column_title = "",
+  row_title = "",
+  column_labels = column_labels[colnames(mat)],
+  row_labels = row_labels[rownames(mat)],
+  col = col_fun,
+  heatmap_legend_param = list(at = c(0, 1, 2, 3)),
+  border = T,
+  cluster_rows = T,
+  cluster_columns = F,
+  row_names_gp = gpar(fontsize = 12),
+  column_names_gp = gpar(fontsize = 12),
+  column_names_rot = 0,
+  column_names_centered = TRUE,
+  rect_gp = gpar(col = "#d9d9d9", lwd = 2),
+  cell_fun = function(j, i, x, y, width, height, fill) {
+    grid.text(mat2[i, j], x, y, gp = gpar(fontsize = 10))}))
 dev.off()
 
 
@@ -177,3 +225,6 @@ females_tumour_network_MEs <- cbind(sample = rownames(females_tumour), females_t
   inner_join(stomach_tcga_clinical2, by=c("sample")) %>%
   mutate(ajcc_pathologic_tumor_stage = as.numeric(as.factor(ajcc_pathologic_tumor_stage)), histological_type = as.numeric(as.factor(histological_type)), histological_grade = as.numeric(as.factor(histological_grade)))
 write.table(females_tumour_network_MEs, "./files/stomach_females_tumour_network_MEs_traits.txt", quote=F, sep="\t", row.names=F)
+
+
+save(list=ls(), file="r_workspaces/stomach_networks_MEs_traits.RData")

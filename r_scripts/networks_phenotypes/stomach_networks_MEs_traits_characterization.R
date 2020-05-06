@@ -140,23 +140,24 @@ p_dis_genders <- bind_rows(
   skyblue_genes_females %>% dplyr::select(geneName, kruskal_pval) %>% mutate(gender = "females")) %>%
   ggplot(mapping = aes(x = gender, y = -log10(kruskal_pval), fill = gender)) +
   geom_boxplot() +
-  stat_compare_means(size = 4) +
+  stat_compare_means(size = 3, label.y = 7) +
   theme_classic() +
   theme(
-    axis.title = element_text(colour="black", size=14),
-    axis.text.y = element_text(colour="black", size=14),
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(colour="black", size=14),
     axis.text.x = element_blank(),
+    axis.text.y = element_text(colour="black", size=12),
     axis.ticks.x = element_blank(),
-    legend.text=element_text(colour="black", size=11),
-    legend.title=element_text(colour="black", size=13),
-    strip.background = element_blank(),
-    strip.text = element_text(colour="black", size=14),
+    axis.line.x = element_blank(),
+    legend.text=element_text(colour="black", size=10),
+    legend.title=element_text(colour="black", size=14),
     legend.position = "bottom") +
   scale_fill_manual(values=c("#fbb4b9", "#74a9cf"), name="Gender", labels = c("Female", "Male")) +
-  labs(x = "Gender", y = "P-value (-log10)", title = "") +
+  labs(x = "", y = "P-value (-log10)", title = "") +
   guides(fill=guide_legend(nrow=2))
-ggsave(filename="stomach_p_dist_genders.png", plot=p_dis_genders, path = "./plots/wgcna_networks_traits/", width=2, height=4)
-unlink("stomach_p_dist_genders.png")
+ggsave(filename="stomach_p_dist_genders.png", plot=p_dis_genders, path = "./plots/wgcna_networks_traits/", width=2, height=5)
+ggsave(filename="stomach_p_dist_genders.pdf", plot=p_dis_genders, path = "./plots/wgcna_networks_traits/", width=2, height=5)
+unlink("stomach_p_dist_genders.pdf")
 
 
 
@@ -180,15 +181,17 @@ stomach_males_fpkm_plot <- skyblue_genes_expr %>%
     axis.text.y = element_text(colour="black", size=14),
     axis.text.x = element_blank(),
     axis.ticks.x = element_blank(),
-    legend.text=element_text(colour="black", size=13),
+    legend.text=element_text(colour="black", size=11),
     legend.title=element_text(colour="black", size=14),
     strip.background = element_blank(),
     strip.text = element_text(colour="black", size=14),
     legend.position = "bottom") +
   labs(x = "Histological type", y = "FPKM (log2)", title = "") +
-  guides(fill=guide_legend(nrow=6))
+  guides(fill=guide_legend(ncol=3))
 ggsave(filename="stomach_tumour_skyblue_hist_types.png", plot=stomach_males_fpkm_plot, path = "./plots/wgcna_networks_traits/", width=15, height=5)
+ggsave(filename="stomach_tumour_skyblue_hist_types.pdf", plot=stomach_males_fpkm_plot, path = "./plots/wgcna_networks_traits/", width=15, height=5)
 unlink("stomach_tumour_skyblue_hist_types.png")
+unlink("stomach_tumour_skyblue_hist_types.pdf")
 
 
 #females
@@ -366,7 +369,7 @@ unlink("skyblue_genes_expr_cluster_density2.png")
 # HSP90AB1 gene
 
 meta <- stomach_tcga_clinical %>%
-  inner_join(skyblue_genes_expr_cluster %>% filter(geneName == "HSP90AB1") %>% dplyr::select(sample, geneName, class), by = c("sample"))
+  inner_join(skyblue_genes_expr_cluster %>% filter(geneName == "MED20") %>% dplyr::select(sample, geneName, class), by = c("sample"))
 
 km_fit <- survfit(Surv(OS.time, OS) ~ class, data=meta)
 km_pval <- survdiff(Surv(OS.time, OS) ~ class, data=meta)

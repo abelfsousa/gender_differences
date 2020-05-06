@@ -77,8 +77,8 @@ stomach_tcga_gtex_counts %>% colnames %>% all.equal(stomach_tcga_gtex_meta$sampl
 #TRUE
 
 
-
-
+stomach_tcga_gtex_counts <- log2(stomach_tcga_gtex_counts+1)
+thyroid_tcga_gtex_counts <- log2(thyroid_tcga_gtex_counts+1)
 
 
 
@@ -136,8 +136,8 @@ pca_thyroid_bp <- pca_thyroid %>%
     plot.title = element_text(colour="black", size=15, hjust = 0.5)) +
   coord_fixed() +
   labs(x = "PC1", y = "PC2", title = "Thyroid")
-ggsave(filename="pca_thyroid_samples.pdf", plot=pca_thyroid_bp, path = "./plots/pre_processing/", width = 5, height = 5)
-unlink("pca_thyroid_samples.pdf")
+#ggsave(filename="pca_thyroid_samples.pdf", plot=pca_thyroid_bp, path = "./plots/pre_processing/", width = 5, height = 5)
+#unlink("pca_thyroid_samples.pdf")
 
 
 
@@ -158,8 +158,8 @@ pca_stomach_bp <- pca_stomach %>%
     plot.title = element_text(colour="black", size=15, hjust = 0.5)) +
   coord_fixed() +
   labs(x = "PC1", y = "PC2", title = "Stomach")
-ggsave(filename="pca_stomach_samples.pdf", plot=pca_stomach_bp, path = "./plots/pre_processing/", width = 5, height = 5)
-unlink("pca_stomach_samples.pdf")
+#ggsave(filename="pca_stomach_samples.pdf", plot=pca_stomach_bp, path = "./plots/pre_processing/", width = 5, height = 5)
+#unlink("pca_stomach_samples.pdf")
 
 
 
@@ -175,13 +175,13 @@ pca_bp <- rbind(pca_thyroid, pca_stomach) %>%
   scale_shape_manual(values=c(16, 3, 15), name="Data", labels = c("GTEx", "TCGA normal", "TCGA tumour")) +
   theme_classic() +
   theme(
-    axis.title = element_text(colour="black", size=14),
-    axis.text = element_text(colour="black", size=13),
-    legend.text=element_text(colour="black", size=13),
-    legend.title=element_text(colour="black", size=15),
+    axis.title = element_text(colour="black", size=12),
+    axis.text = element_text(colour="black", size=10),
+    legend.text=element_text(colour="black", size=10),
+    legend.title=element_text(colour="black", size=12),
     strip.background = element_blank(),
-    strip.text = element_text(colour="black", size=15)) +
-  labs(x = "PC1 (Stomach: 19.1%, Thyroid: 32.1%)", y = "PC2 (Stomach: 11.0%, Thyroid: 9.6%)")
+    strip.text = element_text(colour="black", size=12)) +
+  labs(x = "PC1 (Stomach: 22.6%, Thyroid: 34.8%)", y = "PC2 (Stomach: 12.7%, Thyroid: 11.0%)")
 ggsave(filename="pca_thyroid_stomach_samples.pdf", plot=pca_bp, path = "./plots/pre_processing/", width = 8, height = 4)
 unlink("pca_thyroid_stomach_samples.pdf")
 
@@ -199,28 +199,27 @@ pca_stomach_gtex <- cbind(sample = rownames(pca_stomach_gtex), pca_stomach_gtex)
 pca_stomach_gtex <- pca_stomach_gtex %>%
   as.tibble() %>%
   gather(key = "PC", value = "value", -sample) %>%
-  inner_join(stomach_gtex_meta[, c("sample", "GENDER", "MHCANCERNM", "SMCENTER", "SMTSTPTREF", "SMNABTCHT")], by = "sample") %>%
+  inner_join(stomach_gtex_meta[, c("sample", "SMRIN", "AGE", "ETHNCTY", "MHCANCERNM", "SMCENTER", "SMTSTPTREF", "SMNABTCHT", "SMTSISCH", "GENDER")], by = "sample") %>%
   mutate(GENDER = if_else(GENDER == 1, "male", "female")) %>%
-  mutate(MHCANCERNM = as.character(MHCANCERNM))
-
+  mutate(MHCANCERNM = as.character(MHCANCERNM)) %>%
+  mutate(tissue = "Stomach")
 
 
 pca_stomach_gtex_bp1 <- pca_stomach_gtex %>%
   filter(PC == "PC1" | PC == "PC2" | PC == "PC3") %>%
   spread(key = "PC", value = "value") %>%
-  ggplot(mapping=aes(x=PC1, y=PC2, color=GENDER, shape = SMNABTCHT) ) +
+  ggplot(mapping=aes(x=PC1, y=PC2, color=GENDER) ) +
   geom_point() +
   scale_color_manual(values=c("#fbb4b9", "#74a9cf"), name="Gender", labels = c("Female", "Male")) +
-  scale_shape_discrete(name="Batch", labels = c("1", "2")) +
   theme_classic() +
   theme(
-    axis.title = element_text(colour="black", size=15),
-    axis.text = element_text(colour="black", size=13),
-    legend.text=element_text(colour="black", size=13),
-    legend.title=element_text(colour="black", size=15),
-    plot.title = element_text(colour="black", size=15, hjust = 0.5)) +
-  coord_fixed() +
-  labs(x = "PC1", y = "PC2", title = "Stomach GTEx")
+    axis.title = element_text(colour="black", size=12),
+    axis.text = element_text(colour="black", size=10),
+    legend.text=element_text(colour="black", size=10),
+    legend.title=element_text(colour="black", size=12),
+    plot.title = element_text(colour="black", size=12, hjust = 0.5)) +
+  #coord_fixed() +
+  labs(x = "PC1", y = "PC2", title = "Stomach GTEx\nBefore regress-out the covariates")
 ggsave(filename="pca_stomach_gtex1.pdf", plot=pca_stomach_gtex_bp1, path = "./plots/pre_processing/", width = 4, height = 4)
 unlink("pca_stomach_gtex1.pdf")
 
@@ -228,38 +227,135 @@ unlink("pca_stomach_gtex1.pdf")
 pca_stomach_gtex_bp2 <- pca_stomach_gtex %>%
   filter(PC == "PC1" | PC == "PC2" | PC == "PC3") %>%
   spread(key = "PC", value = "value") %>%
-  ggplot(mapping=aes(x=PC2, y=PC3, color=GENDER, shape = SMNABTCHT) ) +
+  ggplot(mapping=aes(x=PC1, y=PC3, color=GENDER) ) +
   geom_point() +
   scale_color_manual(values=c("#fbb4b9", "#74a9cf"), name="Gender", labels = c("Female", "Male")) +
-  scale_shape_discrete(name="Batch", labels = c("1", "2")) +
+  theme_classic() +
+  theme(
+    axis.title = element_text(colour="black", size=12),
+    axis.text = element_text(colour="black", size=10),
+    legend.text=element_text(colour="black", size=10),
+    legend.title=element_text(colour="black", size=12),
+    plot.title = element_text(colour="black", size=12, hjust = 0.5)) +
+  #coord_fixed() +
+  labs(x = "PC1", y = "PC3", title = "Stomach GTEx\nBefore regress-out the covariates")
+ggsave(filename="pca_stomach_gtex2.pdf", plot=pca_stomach_gtex_bp2, path = "./plots/pre_processing/", width = 4, height = 4)
+unlink("pca_stomach_gtex2.pdf")
+
+
+
+# PCA thyroid gtex
+thyroid_gtex_meta <- read.delim("./files/gtex_thyroid_meta.txt", row.names = c(1), stringsAsFactors=F)
+thyroid_gtex_meta <- cbind(sample=rownames(thyroid_gtex_meta), thyroid_gtex_meta)
+
+pca_thyroid_gtex <- prcomp(t(thyroid_tcga_gtex_counts[, colnames(thyroid_tcga_gtex_counts) %in% thyroid_tcga_gtex_meta[thyroid_tcga_gtex_meta$data == "GTEx", "sample"]]), center = TRUE, scale. = TRUE)$x %>% as.data.frame()
+pca_thyroid_gtex <- cbind(sample = rownames(pca_thyroid_gtex), pca_thyroid_gtex)
+pca_thyroid_gtex <- pca_thyroid_gtex %>%
+  as.tibble() %>%
+  gather(key = "PC", value = "value", -sample) %>%
+  inner_join(thyroid_gtex_meta[, c("sample", "SMRIN", "AGE", "ETHNCTY", "MHCANCERNM", "SMCENTER", "SMTSTPTREF", "SMNABTCHT", "SMTSISCH", "GENDER")], by = "sample") %>%
+  mutate(GENDER = if_else(GENDER == 1, "male", "female")) %>%
+  mutate(MHCANCERNM = as.character(MHCANCERNM)) %>%
+  mutate(tissue = "Thyroid")
+
+
+pca_thyroid_gtex_bp1 <- pca_thyroid_gtex %>%
+  filter(PC == "PC1" | PC == "PC2" | PC == "PC3") %>%
+  spread(key = "PC", value = "value") %>%
+  ggplot(mapping=aes(x=PC1, y=PC2, color=GENDER) ) +
+  geom_point() +
+  scale_color_manual(values=c("#fbb4b9", "#74a9cf"), name="Gender", labels = c("Female", "Male")) +
+  theme_classic() +
+  theme(
+    axis.title = element_text(colour="black", size=12),
+    axis.text = element_text(colour="black", size=10),
+    legend.text=element_text(colour="black", size=10),
+    legend.title=element_text(colour="black", size=12),
+    plot.title = element_text(colour="black", size=12, hjust = 0.5)) +
+  #coord_fixed() +
+  labs(x = "PC1", y = "PC2", title = "Thyroid GTEx\nBefore regress-out the covariates")
+ggsave(filename="pca_thyroid_gtex1.pdf", plot=pca_thyroid_gtex_bp1, path = "./plots/pre_processing/", width = 4, height = 4)
+unlink("pca_thyroid_gtex1.pdf")
+
+
+pca_thyroid_gtex_bp2 <- pca_thyroid_gtex %>%
+  filter(PC == "PC1" | PC == "PC2" | PC == "PC3") %>%
+  spread(key = "PC", value = "value") %>%
+  ggplot(mapping=aes(x=PC1, y=PC3, color=GENDER) ) +
+  geom_point() +
+  scale_color_manual(values=c("#fbb4b9", "#74a9cf"), name="Gender", labels = c("Female", "Male")) +
+  theme_classic() +
+  theme(
+    axis.title = element_text(colour="black", size=12),
+    axis.text = element_text(colour="black", size=10),
+    legend.text=element_text(colour="black", size=10),
+    legend.title=element_text(colour="black", size=12),
+    plot.title = element_text(colour="black", size=12, hjust = 0.5)) +
+  #coord_fixed() +
+  labs(x = "PC1", y = "PC3", title = "Thyroid GTEx\nBefore regress-out the covariates")
+ggsave(filename="pca_thyroid_gtex2.pdf", plot=pca_thyroid_gtex_bp2, path = "./plots/pre_processing/", width = 4, height = 4)
+unlink("pca_thyroid_gtex2.pdf")
+
+
+
+# PCA stomach and thyroid GTEx samples
+pca_thyroid_stomach_gtex <- bind_rows(pca_thyroid_gtex, pca_stomach_gtex) %>%
+  filter(PC == "PC1" | PC == "PC2" | PC == "PC3") %>%
+  spread(key = "PC", value = "value") %>%
+  ggplot(mapping=aes(x=PC1, y=PC2, color=GENDER) ) +
+  geom_point() +
+  facet_wrap(~ tissue, scales = "free") +
+  scale_color_manual(values=c("#fbb4b9", "#74a9cf"), name="Gender", labels = c("Female", "Male")) +
   theme_classic() +
   theme(
     axis.title = element_text(colour="black", size=15),
     axis.text = element_text(colour="black", size=13),
     legend.text=element_text(colour="black", size=13),
     legend.title=element_text(colour="black", size=15),
-    plot.title = element_text(colour="black", size=15, hjust = 0.5)) +
-  coord_fixed() +
-  labs(x = "PC2", y = "PC3", title = "Stomach GTEx")
-ggsave(filename="pca_stomach_gtex2.pdf", plot=pca_stomach_gtex_bp2, path = "./plots/pre_processing/", width = 4, height = 4)
-unlink("pca_stomach_gtex2.pdf")
+    strip.background = element_blank(),
+    plot.title = element_text(colour="black", size=15, hjust = 0.5),
+    strip.text = element_text(colour="black", size=13)) +
+  labs(x = "PC1", y = "PC2", title = "GTEx\nBefore regress-out the covariates")
+ggsave(filename="pca_thyroid_stomach_gtex_samples1.pdf", plot=pca_thyroid_stomach_gtex, path = "./plots/pre_processing/", width = 8, height = 4)
+unlink("pca_thyroid_stomach_gtex_samples1.pdf")
+
+pca_thyroid_stomach_gtex <- bind_rows(pca_thyroid_gtex, pca_stomach_gtex) %>%
+  filter(PC == "PC1" | PC == "PC2" | PC == "PC3") %>%
+  spread(key = "PC", value = "value") %>%
+  ggplot(mapping=aes(x=PC1, y=PC3, color=GENDER) ) +
+  geom_point() +
+  facet_wrap(~ tissue, scales = "free") +
+  scale_color_manual(values=c("#fbb4b9", "#74a9cf"), name="Gender", labels = c("Female", "Male")) +
+  theme_classic() +
+  theme(
+    axis.title = element_text(colour="black", size=15),
+    axis.text = element_text(colour="black", size=13),
+    legend.text=element_text(colour="black", size=13),
+    legend.title=element_text(colour="black", size=15),
+    strip.background = element_blank(),
+    plot.title = element_text(colour="black", size=15, hjust = 0.5),
+    strip.text = element_text(colour="black", size=13)) +
+  labs(x = "PC1", y = "PC3", title = "GTEx\nBefore regress-out the covariates")
+ggsave(filename="pca_thyroid_stomach_gtex_samples2.pdf", plot=pca_thyroid_stomach_gtex, path = "./plots/pre_processing/", width = 8, height = 4)
+unlink("pca_thyroid_stomach_gtex_samples2.pdf")
+
 
 
 
 
 # PCA stomach and thyroid TCGA samples
-pca_thyroid2 <- prcomp(t(thyroid_tcga_gtex_counts[, !str_detect(colnames(thyroid_tcga_gtex_counts), "GTEX")]), center = TRUE, scale. = TRUE)$x %>% as.data.frame()
-pca_thyroid2 <- cbind(sample = rownames(pca_thyroid2), pca_thyroid2)
-pca_thyroid2 <- pca_thyroid2 %>%
+pca_thyroid_tcga <- prcomp(t(thyroid_tcga_gtex_counts[, !str_detect(colnames(thyroid_tcga_gtex_counts), "GTEX")]), center = TRUE, scale. = TRUE)$x %>% as.data.frame()
+pca_thyroid_tcga <- cbind(sample = rownames(pca_thyroid_tcga), pca_thyroid_tcga)
+pca_thyroid_tcga <- pca_thyroid_tcga %>%
   as.tibble() %>%
   gather(key = "PC", value = "value", -sample) %>%
   inner_join(thyroid_tcga_gtex_meta[, c("sample", "gender", "sample_type")], by = "sample") %>%
   mutate(tissue = "Thyroid")
 
 
-pca_stomach2 <- prcomp(t(stomach_tcga_gtex_counts[, !str_detect(colnames(stomach_tcga_gtex_counts), "GTEX")]), center = TRUE, scale. = TRUE)$x %>% as.data.frame()
-pca_stomach2 <- cbind(sample = rownames(pca_stomach2), pca_stomach2)
-pca_stomach2 <- pca_stomach2 %>%
+pca_stomach_tcga <- prcomp(t(stomach_tcga_gtex_counts[, !str_detect(colnames(stomach_tcga_gtex_counts), "GTEX")]), center = TRUE, scale. = TRUE)$x %>% as.data.frame()
+pca_stomach_tcga <- cbind(sample = rownames(pca_stomach_tcga), pca_stomach_tcga)
+pca_stomach_tcga <- pca_stomach_tcga %>%
   as.tibble() %>%
   gather(key = "PC", value = "value", -sample) %>%
   inner_join(stomach_tcga_gtex_meta[, c("sample", "gender", "sample_type")], by = "sample") %>%
@@ -267,7 +363,7 @@ pca_stomach2 <- pca_stomach2 %>%
 
 
 # thyroid and stomach barplot
-pca2_bp <- rbind(pca_thyroid2, pca_stomach2) %>%
+pca_thyroid_stomach_tcga_bp <- rbind(pca_thyroid_tcga, pca_stomach_tcga) %>%
   filter(PC == "PC1" | PC == "PC2") %>%
   spread(key = "PC", value = "value") %>%
   ggplot(mapping=aes(x=PC1, y=PC2, color=gender, shape=sample_type) ) +
@@ -282,12 +378,33 @@ pca2_bp <- rbind(pca_thyroid2, pca_stomach2) %>%
     legend.text=element_text(colour="black", size=13),
     legend.title=element_text(colour="black", size=15),
     strip.background = element_blank(),
-    strip.text = element_text(colour="black", size=15)) +
-  labs(x = "PC1", y = "PC2")
-ggsave(filename="pca_thyroid_stomach_tcga_samples.pdf", plot=pca2_bp, path = "./plots/pre_processing/", width = 8, height = 4)
-unlink("pca_thyroid_stomach_tcga_samples.pdf")
+    plot.title = element_text(colour="black", size=15, hjust = 0.5),
+    strip.text = element_text(colour="black", size=13)) +
+  labs(x = "PC1", y = "PC2", title = "TCGA")
+ggsave(filename="pca_thyroid_stomach_tcga_samples1.pdf", plot=pca_thyroid_stomach_tcga_bp, path = "./plots/pre_processing/", width = 8, height = 4)
+unlink("pca_thyroid_stomach_tcga_samples1.pdf")
 
 
+pca_thyroid_stomach_tcga_bp <- rbind(pca_thyroid_tcga, pca_stomach_tcga) %>%
+  filter(PC == "PC1" | PC == "PC2" | PC == "PC3") %>%
+  spread(key = "PC", value = "value") %>%
+  ggplot(mapping=aes(x=PC1, y=PC3, color=gender, shape=sample_type) ) +
+  geom_point() +
+  facet_wrap(~ tissue, scales = "free") +
+  scale_color_manual(values=c("#fbb4b9", "#74a9cf"), name="Gender", labels = c("Female", "Male")) +
+  scale_shape_manual(values=c(3, 15), name="Sample", labels = c("TCGA normal", "TCGA tumour")) +
+  theme_classic() +
+  theme(
+    axis.title = element_text(colour="black", size=15),
+    axis.text = element_text(colour="black", size=13),
+    legend.text=element_text(colour="black", size=13),
+    legend.title=element_text(colour="black", size=15),
+    strip.background = element_blank(),
+    plot.title = element_text(colour="black", size=15, hjust = 0.5),
+    strip.text = element_text(colour="black", size=13)) +
+  labs(x = "PC1", y = "PC3", title = "TCGA")
+ggsave(filename="pca_thyroid_stomach_tcga_samples2.pdf", plot=pca_thyroid_stomach_tcga_bp, path = "./plots/pre_processing/", width = 8, height = 4)
+unlink("pca_thyroid_stomach_tcga_samples2.pdf")
 
 
 
