@@ -185,38 +185,66 @@ volcano <- thca_TvsN_females %>%
   geom_point(alpha = 0.5, size = 0.8) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "black", lwd = 0.3) +
   geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "black", lwd = 0.3) +
-  scale_colour_manual(values = c("grey60", "red"), name = "Differentially\nmethylated") +
-  scale_x_continuous(limits = c(NA,2)) +
-  labs(title = "Thyroid females - Tumour Vs Normal\nDifferential methylation of DEGs")
+  theme_classic() +
+  theme(
+    axis.text = element_text(color = "black", size = 12),
+    axis.title = element_text(color = "black", size = 14),
+    plot.title = element_text(color = "black", size = 14, hjust = 0.5)) +
+  scale_colour_manual(values = c("grey60", "red"), labels = c("No", "Yes"), name = "Differentially\nmethylated") +
+  scale_x_continuous(limits = c(-2,2)) +
+  labs(x = "Fold-change (log2)", y = "FDR (-log10)", title = "Thyroid females - Tumour Vs Normal\nDifferential methylation of DEGs")
 
 ggsave(filename="01_thyroid_TvsN_females_degs_methylation_state_volcano.png", plot=volcano, path = "./plots/methylation_analysis_differential/", width=5, height=5)
 unlink("01_thyroid_TvsN_females_degs_methylation_state_volcano.png")
 
 
-barplot <- thca_TvsN_females %>%
+barplot1 <- thca_TvsN_females %>%
   as_tibble() %>%
   semi_join(thca_TvsN_females_signf_degs, by = c("genes" = "geneName")) %>%
   mutate(diff_methyl = if_else(FDR < 0.05, "1", "0")) %>%
-  ggplot(mapping = aes(x = c("Thyroid females - T vs N"), fill = diff_methyl)) +
+  ggplot(mapping = aes(x = factor(0), fill = diff_methyl)) +
   geom_bar(position = "fill") +
-  scale_fill_manual(values = c("grey60", "red"), name = "Differentially\nmethylated") +
-  labs(x = "DEGs", y = "Percentage", title = "")
+  scale_fill_manual(values = c("grey60", "red"), guide=F) +
+  theme_classic() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.title.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.line.x = element_blank(),
+    axis.text.y = element_text(color="black")) +
+  labs(y = "Percentage")
 
-ggsave(filename="02_thyroid_TvsN_females_degs_methylation_state_barplotP.png", plot=barplot, path = "./plots/methylation_analysis_differential/", width=3, height=3)
+ggsave(filename="02_thyroid_TvsN_females_degs_methylation_state_barplotP.png", plot=barplot1, path = "./plots/methylation_analysis_differential/", width=3, height=3)
 unlink("02_thyroid_TvsN_females_degs_methylation_state_barplotP.png")
 
 
-barplot <- thca_TvsN_females %>%
+barplot2 <- thca_TvsN_females %>%
   as_tibble() %>%
   semi_join(thca_TvsN_females_signf_degs, by = c("genes" = "geneName")) %>%
   mutate(diff_methyl = if_else(FDR < 0.05, "1", "0")) %>%
-  ggplot(mapping = aes(x = c("Thyroid females - T vs N"), fill = diff_methyl)) +
+  ggplot(mapping = aes(x = factor(0), fill = diff_methyl)) +
   geom_bar(position = "dodge") +
-  scale_fill_manual(values = c("grey60", "red"), name = "Differentially\nmethylated") +
-  labs(x = "DEGs", y = "Count", title = "")
+  scale_fill_manual(values = c("grey60", "red"), guide = F) +
+  theme_classic() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.title.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.line.x = element_blank(),
+    axis.text.y = element_text(color="black")) +
+  labs(y = "Count")
 
-ggsave(filename="03_thyroid_TvsN_females_degs_methylation_state_barplotC.png", plot=barplot, path = "./plots/methylation_analysis_differential/", width=3, height=3)
+ggsave(filename="03_thyroid_TvsN_females_degs_methylation_state_barplotC.png", plot=barplot2, path = "./plots/methylation_analysis_differential/", width=3, height=3)
 unlink("03_thyroid_TvsN_females_degs_methylation_state_barplotC.png")
+
+
+volcano2 <- ggdraw(volcano) +
+  draw_plot(barplot1, .55, .65, .25, .25) +
+  draw_plot(barplot2, .55, .35, .25, .25)
+
+ggsave(filename="thyroid_TvsN_females_degs_methylation_state_volcano.pdf", plot=volcano2, path = "./plots/methylation_analysis_differential/", width=5, height=5)
+unlink("thyroid_TvsN_females_degs_methylation_state_volcano.pdf")
+
 
 
 # Thyroid - T vs N in males
@@ -229,39 +257,65 @@ volcano <- thca_TvsN_males %>%
   geom_point(alpha = 0.5, size = 0.8) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "black", lwd = 0.3) +
   geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "black", lwd = 0.3) +
-  scale_colour_manual(values = c("grey60", "red"), name = "Differentially\nmethylated") +
-  scale_x_continuous(limits = c(NA,2)) +
-  labs(title = "Thyroid males - Tumour Vs Normal\nDifferential methylation of DEGs")
+  theme_classic() +
+  theme(
+    axis.text = element_text(color = "black", size = 12),
+    axis.title = element_text(color = "black", size = 14),
+    plot.title = element_text(color = "black", size = 14, hjust = 0.5)) +
+  scale_colour_manual(values = c("grey60", "red"), labels = c("No", "Yes"), name = "Differentially\nmethylated") +
+  scale_x_continuous(limits = c(-2,2)) +
+  labs(x = "Fold-change (log2)", y = "FDR (-log10)", title = "Thyroid males - Tumour Vs Normal\nDifferential methylation of DEGs")
 
 ggsave(filename="04_thyroid_TvsN_males_degs_methylation_state_volcano.png", plot=volcano, path = "./plots/methylation_analysis_differential/", width=5, height=5)
 unlink("04_thyroid_TvsN_males_degs_methylation_state_volcano.png")
 
 
-barplot <- thca_TvsN_males %>%
+barplot1 <- thca_TvsN_males %>%
   as_tibble() %>%
   semi_join(thca_TvsN_males_signf_degs, by = c("genes" = "geneName")) %>%
   mutate(diff_methyl = if_else(FDR < 0.05, "1", "0")) %>%
-  ggplot(mapping = aes(x = c("Thyroid males - T vs N"), fill = diff_methyl)) +
+  ggplot(mapping = aes(x = factor(0), fill = diff_methyl)) +
   geom_bar(position = "fill") +
-  scale_fill_manual(values = c("grey60", "red"), name = "Differentially\nmethylated") +
-  labs(x = "DEGs", y = "Percentage", title = "")
+  scale_fill_manual(values = c("grey60", "red"), guide=F) +
+  theme_classic() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.title.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.line.x = element_blank(),
+    axis.text.y = element_text(color="black")) +
+  labs(y = "Percentage")
 
-ggsave(filename="05_thyroid_TvsN_males_degs_methylation_state_barplotP.png", plot=barplot, path = "./plots/methylation_analysis_differential/", width=3, height=3)
+ggsave(filename="05_thyroid_TvsN_males_degs_methylation_state_barplotP.png", plot=barplot1, path = "./plots/methylation_analysis_differential/", width=3, height=3)
 unlink("05_thyroid_TvsN_males_degs_methylation_state_barplotP.png")
 
 
-barplot <- thca_TvsN_males %>%
+barplot2 <- thca_TvsN_males %>%
   as_tibble() %>%
   semi_join(thca_TvsN_males_signf_degs, by = c("genes" = "geneName")) %>%
   mutate(diff_methyl = if_else(FDR < 0.05, "1", "0")) %>%
-  ggplot(mapping = aes(x = c("Thyroid males - T vs N"), fill = diff_methyl)) +
+  ggplot(mapping = aes(x = factor(0), fill = diff_methyl)) +
   geom_bar(position = "dodge") +
-  scale_fill_manual(values = c("grey60", "red"), name = "Differentially\nmethylated") +
-  labs(x = "DEGs", y = "Count", title = "")
+  scale_fill_manual(values = c("grey60", "red"), guide = F) +
+  theme_classic() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.title.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.line.x = element_blank(),
+    axis.text.y = element_text(color="black")) +
+  labs(y = "Count")
 
-ggsave(filename="06_thyroid_TvsN_males_degs_methylation_state_barplotC.png", plot=barplot, path = "./plots/methylation_analysis_differential/", width=3, height=3)
+ggsave(filename="06_thyroid_TvsN_males_degs_methylation_state_barplotC.png", plot=barplot2, path = "./plots/methylation_analysis_differential/", width=3, height=3)
 unlink("06_thyroid_TvsN_males_degs_methylation_state_barplotC.png")
 
+
+volcano2 <- ggdraw(volcano) +
+  draw_plot(barplot1, .55, .65, .25, .25) +
+  draw_plot(barplot2, .55, .35, .25, .25)
+
+ggsave(filename="thyroid_TvsN_males_degs_methylation_state_volcano.pdf", plot=volcano2, path = "./plots/methylation_analysis_differential/", width=5, height=5)
+unlink("thyroid_TvsN_males_degs_methylation_state_volcano.pdf")
 
 
 
@@ -275,38 +329,65 @@ volcano <- thca_MvsF_tumour %>%
   geom_point(alpha = 0.5, size = 0.8) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "black", lwd = 0.3) +
   geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "black", lwd = 0.3) +
-  scale_colour_manual(values = c("grey60", "red"), name = "Differentially\nmethylated") +
-  scale_x_continuous(limits = c(NA,2)) +
-  labs(title = "Thyroid tumours - Male Vs Female\nDifferential methylation of DEGs")
+  theme_classic() +
+  theme(
+    axis.text = element_text(color = "black", size = 12),
+    axis.title = element_text(color = "black", size = 14),
+    plot.title = element_text(color = "black", size = 14, hjust = 0.5)) +
+  scale_colour_manual(values = c("grey60", "red"), labels = c("No", "Yes"), name = "Differentially\nmethylated") +
+  scale_x_continuous(limits = c(-2,2)) +
+  labs(x = "Fold-change (log2)", y = "FDR (-log10)", title = "Thyroid tumours - Male Vs Female\nDifferential methylation of DEGs")
 
 ggsave(filename="07_thyroid_MvsF_tumours_degs_methylation_state_volcano.png", plot=volcano, path = "./plots/methylation_analysis_differential/", width=5, height=5)
 unlink("07_thyroid_MvsF_tumours_degs_methylation_state_volcano.png")
 
 
-barplot <- thca_MvsF_tumour %>%
+barplot1 <- thca_MvsF_tumour %>%
   as_tibble() %>%
   semi_join(thca_MvsF_tumours_signf_degs, by = c("genes" = "geneName")) %>%
   mutate(diff_methyl = if_else(FDR < 0.05, "1", "0")) %>%
-  ggplot(mapping = aes(x = c("Thyroid tumours - M vs F"), fill = diff_methyl)) +
+  ggplot(mapping = aes(x = factor(0), fill = diff_methyl)) +
   geom_bar(position = "fill") +
-  scale_fill_manual(values = c("grey60", "red"), name = "Differentially\nmethylated") +
-  labs(x = "DEGs", y = "Percentage", title = "")
+  scale_fill_manual(values = c("grey60", "red"), guide=F) +
+  theme_classic() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.title.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.line.x = element_blank(),
+    axis.text.y = element_text(color="black")) +
+  labs(y = "Percentage")
 
-ggsave(filename="08_thyroid_MvsF_tumours_degs_methylation_state_barplotP.png", plot=barplot, path = "./plots/methylation_analysis_differential/", width=3, height=3)
+ggsave(filename="08_thyroid_MvsF_tumours_degs_methylation_state_barplotP.png", plot=barplot1, path = "./plots/methylation_analysis_differential/", width=3, height=3)
 unlink("08_thyroid_MvsF_tumours_degs_methylation_state_barplotP.png")
 
 
-barplot <- thca_MvsF_tumour %>%
+barplot2 <- thca_MvsF_tumour %>%
   as_tibble() %>%
   semi_join(thca_MvsF_tumours_signf_degs, by = c("genes" = "geneName")) %>%
   mutate(diff_methyl = if_else(FDR < 0.05, "1", "0")) %>%
-  ggplot(mapping = aes(x = c("Thyroid tumours - M vs F"), fill = diff_methyl)) +
+  ggplot(mapping = aes(x = factor(0), fill = diff_methyl)) +
   geom_bar(position = "dodge") +
-  scale_fill_manual(values = c("grey60", "red"), name = "Differentially\nmethylated") +
-  labs(x = "DEGs", y = "Percentage", title = "")
+  scale_fill_manual(values = c("grey60", "red"), guide = F) +
+  theme_classic() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.title.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.line.x = element_blank(),
+    axis.text.y = element_text(color="black")) +
+  labs(y = "Count")
 
-ggsave(filename="09_thyroid_MvsF_tumours_degs_methylation_state_barplotC.png", plot=barplot, path = "./plots/methylation_analysis_differential/", width=3, height=3)
+ggsave(filename="09_thyroid_MvsF_tumours_degs_methylation_state_barplotC.png", plot=barplot2, path = "./plots/methylation_analysis_differential/", width=3, height=3)
 unlink("09_thyroid_MvsF_tumours_degs_methylation_state_barplotC.png")
+
+
+volcano2 <- ggdraw(volcano) +
+  draw_plot(barplot1, .55, .65, .25, .25) +
+  draw_plot(barplot2, .55, .35, .25, .25)
+
+ggsave(filename="thyroid_MvsF_tumours_degs_methylation_state_volcano.pdf", plot=volcano2, path = "./plots/methylation_analysis_differential/", width=5, height=5)
+unlink("thyroid_MvsF_tumours_degs_methylation_state_volcano.pdf")
 
 
 
@@ -321,38 +402,65 @@ volcano <- stad_MvsF_tumour %>%
   geom_point(alpha = 0.5, size = 0.8) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "black", lwd = 0.3) +
   geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "black", lwd = 0.3) +
-  scale_colour_manual(values = c("grey60", "red"), name = "Differentially\nmethylated") +
-  scale_x_continuous(limits = c(NA,2)) +
-  labs(title = "Stomach tumours - Male Vs Female\nDifferential methylation of DEGs")
+  theme_classic() +
+  theme(
+    axis.text = element_text(color = "black", size = 12),
+    axis.title = element_text(color = "black", size = 14),
+    plot.title = element_text(color = "black", size = 14, hjust = 0.5)) +
+  scale_colour_manual(values = c("grey60", "red"), labels = c("No", "Yes"), name = "Differentially\nmethylated") +
+  scale_x_continuous(limits = c(-2,2)) +
+  labs(x = "Fold-change (log2)", y = "FDR (-log10)", title = "Stomach tumours - Male Vs Female\nDifferential methylation of DEGs")
 
 ggsave(filename="10_stomach_MvsF_tumours_degs_methylation_state_volcano.png", plot=volcano, path = "./plots/methylation_analysis_differential/", width=5, height=5)
 unlink("10_stomach_MvsF_tumours_degs_methylation_state_volcano.png")
 
 
-barplot <- stad_MvsF_tumour %>%
+barplot1 <- stad_MvsF_tumour %>%
   as_tibble() %>%
   semi_join(stad_MvsF_tumours_signf_degs, by = c("genes" = "geneName")) %>%
   mutate(diff_methyl = if_else(FDR < 0.05, "1", "0")) %>%
-  ggplot(mapping = aes(x = c("Stomach tumours - M vs F"), fill = diff_methyl)) +
+  ggplot(mapping = aes(x = factor(0), fill = diff_methyl)) +
   geom_bar(position = "fill") +
-  scale_fill_manual(values = c("grey60", "red"), name = "Differentially\nmethylated") +
-  labs(x = "DEGs", y = "Percentage", title = "")
+  scale_fill_manual(values = c("grey60", "red"), guide=F) +
+  theme_classic() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.title.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.line.x = element_blank(),
+    axis.text.y = element_text(color="black")) +
+    labs(y = "Percentage")
 
-ggsave(filename="11_stomach_MvsF_tumours_degs_methylation_state_barplotP.png", plot=barplot, path = "./plots/methylation_analysis_differential/", width=3, height=3)
+ggsave(filename="11_stomach_MvsF_tumours_degs_methylation_state_barplotP.png", plot=barplot1, path = "./plots/methylation_analysis_differential/", width=3, height=3)
 unlink("11_stomach_MvsF_tumours_degs_methylation_state_barplotP.png")
 
 
-barplot <- stad_MvsF_tumour %>%
+barplot2 <- stad_MvsF_tumour %>%
   as_tibble() %>%
   semi_join(stad_MvsF_tumours_signf_degs, by = c("genes" = "geneName")) %>%
   mutate(diff_methyl = if_else(FDR < 0.05, "1", "0")) %>%
-  ggplot(mapping = aes(x = c("Stomach tumours - M vs F"), fill = diff_methyl)) +
+  ggplot(mapping = aes(x = factor(0), fill = diff_methyl)) +
   geom_bar(position = "dodge") +
-  scale_fill_manual(values = c("grey60", "red"), name = "Differentially\nmethylated") +
-  labs(x = "DEGs", y = "Percentage", title = "")
+  scale_fill_manual(values = c("grey60", "red"), guide = F) +
+  theme_classic() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.title.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.line.x = element_blank(),
+    axis.text.y = element_text(color="black")) +
+  labs(y = "Count")
 
-ggsave(filename="12_stomach_MvsF_tumours_degs_methylation_state_barplotC.png", plot=barplot, path = "./plots/methylation_analysis_differential/", width=3, height=3)
+ggsave(filename="12_stomach_MvsF_tumours_degs_methylation_state_barplotC.png", plot=barplot2, path = "./plots/methylation_analysis_differential/", width=3, height=3)
 unlink("12_stomach_MvsF_tumours_degs_methylation_state_barplotC.png")
+
+
+volcano2 <- ggdraw(volcano) +
+  draw_plot(barplot1, .55, .65, .25, .25) +
+  draw_plot(barplot2, .55, .35, .25, .25)
+
+ggsave(filename="stomach_MvsF_tumours_degs_methylation_state_volcano.pdf", plot=volcano2, path = "./plots/methylation_analysis_differential/", width=5, height=5)
+unlink("stomach_MvsF_tumours_degs_methylation_state_volcano.pdf")
 
 
 
@@ -421,3 +529,7 @@ unlink("12_stomach_MvsF_tumours_degs_methylation_state_barplotC.png")
 #   labs(title = "Stomach - Tumour")
 # ggsave(filename="stad_MvsF_tumour_fdr_distribution.png", plot=comparison, height=6, width=4, path = "./plots/methylation_analysis2/")
 # unlink("stad_MvsF_tumour_fdr_distribution.png")
+
+
+
+save(list=ls(), file="r_workspaces/diff_methylation_analysis_promoters.RData")

@@ -13,7 +13,7 @@ library(viridis)
 library(mygene)
 library(ggVennDiagram)
 
-
+source("./r_scripts/utils.R")
 
 
 # -- Thyroid
@@ -112,7 +112,7 @@ ggVenn <- bind_rows(
   mutate(geneName = set_names(geneName, category)) %>%
   pull(geneName) %>%
   ggVennDiagram(color = "black", category.names = NA) +
-  scale_fill_gradientn(colors=c("#fb9a99", "#1f78b4", "#b15928"), values = c(0,0.4,1), guide=F)
+  scale_fill_gradientn(colors=c("#bd0026", "#1f78b4", "#fdd0a2"), values = c(0,0.4,1), guide=F)
 
 ggsave(filename="thyroid_males_females_signf_degs_venn_gg.png", plot=ggVenn, path = "./plots/diff_expression_tumourVSnormal/", width=4, height=4)
 ggsave(filename="thyroid_males_females_signf_degs_venn_gg.pdf", plot=ggVenn, path = "./plots/diff_expression_tumourVSnormal/", width=4, height=4)
@@ -135,47 +135,31 @@ diff_expr_table <- diff_expr_males_table %>%
 
 diff_expr_vp <- ggplot( data = diff_expr_table, mapping = aes(x=logFC, y=-log10(adj.P.Val), colour=state) ) +
     geom_point(size = 1) +
-    scale_colour_manual(values=c("#b15928", "#fb9a99", "#1f78b4"), na.value="#bdbdbd", labels=c("Common", "Female-specific", "Male-specific", "Not DEG"), name = "DEG type") +
+    scale_colour_manual(values=c("#fdd0a2", "#bd0026", "#1f78b4"), na.value="#bdbdbd", labels=c("Common", "Female-specific", "Male-specific", "Not DEG"), name = "DEG type") +
     facet_wrap( ~ sex, scales = "free_y") +
     geom_line(aes(x=0), color="black", linetype=2, size = 0.3) +
     geom_line(aes(x=1), color="black", linetype=2, size = 0.3) +
     geom_line(aes(x=-1), color="black", linetype=2, size = 0.3) +
     geom_line(aes(y=-log10(0.05)), color="black", linetype=2, size = 0.3) +
-    theme(axis.title = element_text(colour="black", size=16),
+    theme(
+      axis.title = element_text(colour="black", size=16),
       axis.text = element_text(colour="black", size=12),
       legend.text=element_text(colour="black", size=12),
       legend.title=element_text(colour="black", size=16),
-      plot.title = element_text(colour="black", size=16, hjust = 0.5),
+      plot.title = element_text(colour="black", size=18, hjust = 0.5),
       #strip.background = element_blank(),
       strip.text.x = element_text(colour="black", size=16),
       legend.position = "bottom") +
-    labs(x = "Fold-change (log2)", y = "FDR (-log10)", title = "Tumour vs Normal\nDifferential gene expression") +
+    labs(x = "Fold-change (log2)", y = "FDR (-log10)", title = "Thyroid\nTumour vs Normal") +
     guides(color=guide_legend(nrow=2))
-ggsave(filename="diff_expr_thyroid_all_tcga_tumourVSnormal.png", plot=diff_expr_vp, path = "./plots/diff_expression_tumourVSnormal/", width=10, height=5)
+ggsave(filename="diff_expr_thyroid_all_tcga_tumourVSnormal.png", plot=diff_expr_vp, path = "./plots/diff_expression_tumourVSnormal/", width=6, height=5)
+ggsave(filename="diff_expr_thyroid_all_tcga_tumourVSnormal.pdf", plot=diff_expr_vp, path = "./plots/diff_expression_tumourVSnormal/", width=6, height=5)
 unlink("diff_expr_thyroid_all_tcga_tumourVSnormal.png")
+unlink("diff_expr_thyroid_all_tcga_tumourVSnormal.pdf")
 
 
 
 # hypergeometric test of GO terms and KEGG pathways
-
-# enrichment function
-enrich_test <- function(gene_set, universe, terms1, terms2, p_adj, q_value){
-
-  enr <- enricher(
-    gene = gene_set,
-    universe = universe,
-    TERM2GENE = terms1,
-    TERM2NAME = terms2,
-    pvalueCutoff = p_adj,
-    qvalueCutoff = q_value,
-    pAdjustMethod = "BH",
-    minGSSize = 5,
-    maxGSSize = 500)
-
-  enr <- enr@result %>% dplyr::select(Description, ID, Count, p.adjust, GeneRatio, BgRatio, geneID)
-  return(list(enr))
-
-}
 
 # load gene lists
 kegg <- read.gmt("./data/gene_lists/c2.cp.kegg.v6.2.symbols.gmt") %>% mutate(ont = str_replace(ont, "KEGG_", ""))
@@ -196,8 +180,8 @@ cm <- read.gmt("./data/gene_lists/c4.cm.v6.2.symbols.gmt")
 cm2 <- data.frame(ont = cm$ont, name = "CM") %>% dplyr::distinct()
 
 
-all_terms <- bind_rows(kegg, go_bp, onco, cm, immuno, pos) %>% mutate(ont = str_replace_all(ont, "_", " "))
-all_terms2 <- bind_rows(kegg2, go_bp2, onco2, cm2, immuno2, pos2) %>% mutate(ont = str_replace_all(ont, "_", " "))
+all_terms <- bind_rows(kegg, go_bp) %>% mutate(ont = str_replace_all(ont, "_", " "))
+all_terms2 <- bind_rows(kegg2, go_bp2) %>% mutate(ont = str_replace_all(ont, "_", " "))
 
 
 universe_enr <- diff_expr_males_table$geneName
@@ -210,65 +194,47 @@ universe_enr <- diff_expr_males_table$geneName
 all_diff_genes <- males_females_signf_degs %>%
   dplyr::select(state, geneName) %>%
   group_by(state) %>%
-  mutate(geneName = list(geneName)) %>%
-  unique() %>%
-  rowwise() %>%
-  mutate(enr = enrich_test(geneName, universe_enr, all_terms, all_terms2, 1, 1)) %>%
+  summarise(geneName = list(geneName)) %>%
+  mutate(enr = map(.x = geneName, .f = enrich_test, universe = universe_enr, terms1 = all_terms, terms2 = all_terms2, p_adj=1, q_value=1)) %>%
   dplyr::select(-geneName) %>%
-  unnest()
+  unnest(cols = c(enr))
 write.table(all_diff_genes, "./files/thyroid_male_female_degs_enr.txt", sep="\t", quote=F, row.names=F)
 
 
 mf_enr_bp <- all_diff_genes %>%
-  filter(p.adjust < 0.05 & !(Description %in% c("POS", "IMMUNO", "ONCO"))) %>%
+  filter(p.adjust < 0.05) %>%
   mutate(log10_p = -log10(p.adjust)) %>%
   group_by(state, Description) %>%
   top_n(5, log10_p) %>%
   ungroup() %>%
-  mutate(ID = str_replace_all(ID,
-    pattern=c(
-      "MODULE 88" = "METABOLIC AND XENOBIOTIC RESPONSE GENES (MODULE 88)",
-      "MODULE 55" = "EXTRACELLULAR SPACE (MODULE 55)",
-      "\\bMODULE 6\\b" = "TRACHEA GENES (MODULE 6)",
-      "MODULE 12" = "SPINAL CORD GENES (MODULE 12)",
-      "\\bMODULE 2\\b" = "DORSAL ROOT GANGLIA GENES (MODULE 2)",
-      "MODULE 45" = "WHOLE BLOOD GENES (MODULE 45)",
-      "MODULE 84" = "INFLAMMATORY RESPONSE (MODULE 84)",
-      "\\bMODULE 27\\b" = "RECEPTOR ACTIVITY (MODULE 27)",
-      "\\bMODULE 64\\b" = "MEMBRANE RECEPTORS (MODULE 64)",
-      "MODULE 75" = "IMMUNE RESPONSE (MODULE 75)",
-      "MODULE 46" = "IMMUNE RESPONSE (MODULE 46)",
-      "MODULE 44" = "THYMUS (MODULE 44)") )) %>%
   mutate_if(is.character, as.factor) %>%
   mutate(ID = fct_reorder(ID, Count)) %>%
   ggplot(mapping = aes(x=ID, y = Count, fill = log10_p)) +
   geom_bar(stat="identity") +
   theme_classic() +
-  facet_grid(Description ~ state,
+  facet_grid(state ~ Description,
     scales = "free",
     space = "free_y",
     labeller=labeller(
       state = c("common" = "Common", "female_specific" = "Female-specific", "male_specific" = "Male-specific"),
-      Description = c(
-      "GO_BP" = "GO biological\nprocesses",
-      "KEGG" = "KEGG\npathways",
-      "CM" = "Cancer modules"))) +
+      Description = c("GO_BP" = "GO BP", "KEGG" = "KEGG"))) +
   theme(
     axis.title.x=element_text(colour="black", size=20),
     axis.title.y=element_blank(),
     axis.text.y=element_text(colour="black", size=15),
-    axis.text.x=element_text(colour="black", size=16),
-    plot.title = element_blank(),
-    strip.text = element_text(colour="black", size=18),
+    axis.text.x=element_text(colour="black", size=18),
+    plot.title = element_text(colour="black", size=25, hjust = 0.5),
+    strip.text = element_text(colour="black", size=20),
     strip.background = element_blank(),
-    legend.text = element_text(colour="black", size=15),
+    legend.text = element_text(colour="black", size=18),
     legend.title = element_text(colour="black", size=20),
     panel.spacing = unit(1.5, "lines")) +
   coord_flip() +
   scale_fill_viridis(option="D", name="Adj p-val\n(-log10)") +
-  scale_y_continuous(name = "Number of genes")
-ggsave(filename="thyroid_male_female_enr_bp.png", plot=mf_enr_bp, path="./plots/diff_expression_tumourVSnormal/", width = 15, height = 10)
-ggsave(filename="thyroid_male_female_enr_bp.pdf", plot=mf_enr_bp, path="./plots/diff_expression_tumourVSnormal/", width = 15, height = 10)
+  scale_y_continuous(name = "Count") +
+  labs(title = "Thyroid")
+ggsave(filename="thyroid_male_female_enr_bp.png", plot=mf_enr_bp, path="./plots/diff_expression_tumourVSnormal/", width = 13, height = 10)
+ggsave(filename="thyroid_male_female_enr_bp.pdf", plot=mf_enr_bp, path="./plots/diff_expression_tumourVSnormal/", width = 13, height = 10)
 unlink("thyroid_male_female_enr_bp.png")
 unlink("thyroid_male_female_enr_bp.pdf")
 
@@ -440,7 +406,9 @@ thca_compCluster_enrichGO_dot$theme$axis.text.y$size = 22
 thca_compCluster_enrichGO_dot$theme$legend.text$size = rel(1.5)
 thca_compCluster_enrichGO_dot$theme$legend.title$size = rel(2)
 ggsave(filename="thyroid_compareCluster_degs_GO_dot.png", plot=thca_compCluster_enrichGO_dot, path = "./plots/diff_expression_tumourVSnormal/", width=16, height=7)
+ggsave(filename="thyroid_compareCluster_degs_GO_dot.pdf", plot=thca_compCluster_enrichGO_dot, path = "./plots/diff_expression_tumourVSnormal/", width=16, height=7)
 unlink("thyroid_compareCluster_degs_GO_dot.png")
+unlink("thyroid_compareCluster_degs_GO_dot.pdf")
 
 
 

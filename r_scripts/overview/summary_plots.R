@@ -112,7 +112,7 @@ unlink("thyroid_stomach_samples_all.png")
 
 
 plot5 <- ggplot(data=thyroid_stomach_metadata, mapping=aes(x=sample_type, y=..count.., fill=gender)) +
-	geom_bar(position="stack") +
+	geom_bar(position="dodge") +
 	facet_wrap(~ tissue) +
 	scale_fill_manual(values=c("#fbb4b9", "#74a9cf"), name="Gender", labels = c("Female", "Male")) +
 	theme_classic() +
@@ -124,9 +124,12 @@ plot5 <- ggplot(data=thyroid_stomach_metadata, mapping=aes(x=sample_type, y=..co
 		strip.background = element_blank(),
 		strip.text = element_text(colour="black", size=15)) +
 	scale_x_discrete(labels = c("GTEx", "TCGA\nnormal", "TCGA\ntumour")) +
+	scale_y_continuous(limits = c(NA, 400)) +
   labs(y = "Number of samples", x = "Data type")
 ggsave(filename="thyroid_stomach_samples_all2.png", plot = plot5, path = "./plots/summary_plots", width=7, height=5)
+ggsave(filename="thyroid_stomach_samples_all2.pdf", plot = plot5, path = "./plots/summary_plots", width=7, height=5)
 unlink("thyroid_stomach_samples_all2.png")
+unlink("thyroid_stomach_samples_all2.pdf")
 
 
 

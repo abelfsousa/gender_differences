@@ -143,11 +143,11 @@ diff_expr_vp <- ggplot( data = diff_expr_table, mapping = aes(x=logFC, y=adj.P.V
     axis.text = element_text(colour="black", size=12),
     legend.text=element_text(colour="black", size=12),
     legend.title=element_text(colour="black", size=16),
-    plot.title = element_text(colour="black", size=16, hjust = 0.5),
+    plot.title = element_text(colour="black", size=18, hjust = 0.5),
     #strip.background = element_blank(),
     strip.text.x = element_text(colour="black", size=16),
     legend.position = "bottom") +
-  labs(x = "Fold-change (log2)", y = "FDR (-log10)", title = "Male vs Female\nDifferential gene expression") +
+  labs(x = "Fold-change (log2)", y = "FDR (-log10)", title = "Thyroid\nMale vs Female") +
   guides(color=guide_legend(nrow=2))
 
 ggsave(filename="diff_expr_thyroid_all_tcga_maleVSfemale.png", plot=diff_expr_vp, path = "./plots/diff_expression_maleVSfemale_gtex_normal/", width=6, height=5)
