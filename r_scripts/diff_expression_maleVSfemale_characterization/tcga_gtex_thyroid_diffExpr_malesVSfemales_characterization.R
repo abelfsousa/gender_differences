@@ -53,8 +53,8 @@ tumour_normal_signf_degs <- full_join(
     tumour_signf_degs[, c("genes", "geneName", "chrom", "state", "logFC", "adj.P.Val")],
     normal_signf_degs[, c("genes", "geneName", "chrom", "state", "logFC", "adj.P.Val")],
     by=c("genes","geneName","chrom","state")) %>%
-    dplyr::rename(log2FC_tumour = logFC.x, log2FC_normal = logFC.y, FDR_tumour = adj.P.Val.x, FDR_normal = adj.P.Val.y) %>%
-    mutate(log2FC_tumour = round(log2FC_tumour, 2), log2FC_normal = round(log2FC_normal, 2), FDR_tumour = round(FDR_tumour, 2), FDR_normal = round(FDR_normal, 2))
+    dplyr::rename(log2FC_tumour = logFC.x, log2FC_normal = logFC.y, FDR_tumour = adj.P.Val.x, FDR_normal = adj.P.Val.y)
+    #mutate(log2FC_tumour = round(log2FC_tumour, 2), log2FC_normal = round(log2FC_normal, 2), FDR_tumour = round(FDR_tumour, 2), FDR_normal = round(FDR_normal, 2))
 write.table(tumour_normal_signf_degs, "./files/thyroid_tumour_normal_signf_degs.txt", sep="\t", quote=F, row.names=F)
 
 
@@ -217,21 +217,22 @@ tn_enr_bp <- all_diff_genes %>%
     scales = "free",
     labeller=labeller(
       state = c("common" = "Common", "normal_specific" = "Normal-specific"),
-      Description = c("GO_BP" = "GO biological processes", "KEGG" = "KEGG", "ONCO" = "Onco", "IMMUNO" = "Immunogenic", "POS" = "Positional", "CM" = "Cancer\nmodules"))) +
+      Description = c("GO_BP" = "GO BP", "KEGG" = "KEGG", "ONCO" = "Onco", "IMMUNO" = "Immunogenic", "POS" = "Positional", "CM" = "Cancer\nmodules"))) +
   theme(
     axis.title.x=element_text(colour="black", size=15),
     axis.title.y=element_blank(),
     axis.text.y=element_text(colour="black", size=12),
     axis.text.x=element_text(colour="black", size=13),
     plot.title = element_blank(),
-    strip.text.y = element_text(colour="black", size=10),
+    strip.text.y = element_text(colour="black", size=14),
     strip.text.x = element_text(colour="black", size=14),
     strip.background = element_blank(),
     legend.text = element_text(colour="black", size=13),
     legend.title = element_text(colour="black", size=15)) +
   coord_flip() +
-  scale_fill_viridis(option="D", name="Adj p-val\n(-log10)") +
-  scale_y_continuous(name = "Number of genes")
+  scale_fill_viridis(option="D", name="Adjusted P-value\n(-log10)") +
+  scale_y_continuous(name = "Count") +
+  labs(title = "Thyroid")
 
 ggsave(filename="thyroid_tumour_normal_enr_bp_common.png", plot=tn_enr_bp, path="./plots/diff_expression_maleVSfemale_gtex_normal/", width = 10, height = 5)
 ggsave(filename="thyroid_tumour_normal_enr_bp_common.pdf", plot=tn_enr_bp, path="./plots/diff_expression_maleVSfemale_gtex_normal/", width = 10, height = 5)

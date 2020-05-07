@@ -124,7 +124,7 @@ normal_specific_enrch_thyroid <- normal_specific_enrch %>%
       ~ Description,
       ncol = 2,
       nrow = 2,
-      labeller=labeller(Description = c("GO_BP" = "GO BO", "KEGG" = "KEGG"))) +
+      labeller=labeller(Description = c("GO_BP" = "GO BP", "KEGG" = "KEGG"))) +
     scale_color_viridis(discrete = TRUE, option = "C", name = "Term") +
     scale_fill_viridis(discrete = TRUE, option = "C", name = "Term") +
     #scale_colour_brewer(palette = "Set3", name = "Term") +
@@ -137,17 +137,20 @@ normal_specific_enrch_thyroid <- normal_specific_enrch %>%
       legend.text=element_text(colour="black", size=16),
       legend.title=element_text(colour="black", size=15),
       strip.background = element_blank(),
-      strip.text = element_text(colour="black", size=15)) +
-    labs(x = "log2FC", y = "Density")
+      strip.text = element_text(colour="black", size=15),
+      plot.title=element_text(colour="black", size=18, hjust = 0.5)) +
+    labs(x = "log2FC", y = "Density", title = "Thyroid")
 
 ggsave(filename="normal_specific_enrch_thyroid.png", plot = normal_specific_enrch_thyroid, path = "./plots/diff_expression_maleVSfemale_gtex_normal", width=10, height=4)
+ggsave(filename="normal_specific_enrch_thyroid.pdf", plot = normal_specific_enrch_thyroid, path = "./plots/diff_expression_maleVSfemale_gtex_normal", width=10, height=4)
 unlink("normal_specific_enrch_thyroid.png")
+unlink("normal_specific_enrch_thyroid.pdf")
 
 
 
 
 normal_specific_enrch_stomach <- normal_specific_enrch %>%
-  filter(tissue == "Stomach") %>%
+  filter(tissue == "Stomach", Description != "POS") %>%
   ggplot(mapping = aes(x = value, color = ID, fill = ID)) +
     geom_density(alpha = 0.4) +
     geom_vline(xintercept = 0, linetype="dashed", color = "black", size=0.3) +
@@ -167,11 +170,14 @@ normal_specific_enrch_stomach <- normal_specific_enrch %>%
       legend.title=element_text(colour="black", size=15),
       strip.background = element_blank(),
       strip.text = element_text(colour="black", size=15),
+      plot.title=element_text(colour="black", size=18, hjust = 0.5),
       panel.spacing = unit(0.5, "lines")) +
-    labs(x = "log2FC", y = "Density")
+    labs(x = "log2FC", y = "Density", title = "Stomach")
 
 ggsave(filename="normal_specific_enrch_stomach.png", plot = normal_specific_enrch_stomach, path = "./plots/diff_expression_maleVSfemale_gtex_normal", width=10, height=4)
+ggsave(filename="normal_specific_enrch_stomach.pdf", plot = normal_specific_enrch_stomach, path = "./plots/diff_expression_maleVSfemale_gtex_normal", width=10, height=4)
 unlink("normal_specific_enrch_stomach.png")
+unlink("normal_specific_enrch_stomach.pdf")
 
 
 
