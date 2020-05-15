@@ -203,12 +203,12 @@ normal_gender_sp_mod_hyp <- all_modules_enr %>%
     scales = "free",
     space = "free_y",
     labeller=labeller(
-      moduleL = c("darkgreen" = "M1", "royalblue" = "M2", "yellowgreen" = "M3"),
+      moduleL = c("darkgreen" = "FS1", "royalblue" = "FS2", "yellowgreen" = "FS3"),
       Description = c("GO_BP" = "GO BP", "KEGG" = "KEGG"))) +
   theme(
     axis.title.x=element_text(colour="black", size=18),
     axis.title.y=element_blank(),
-    axis.text.y=element_text(colour="black", size=12),
+    axis.text.y=element_text(colour="black", size=13),
     axis.text.x=element_text(colour="black", size=14),
     strip.text = element_text(colour="black", size=18),
     strip.background = element_blank(),
@@ -217,8 +217,8 @@ normal_gender_sp_mod_hyp <- all_modules_enr %>%
     panel.spacing = unit(1.5, "lines")) +
   scale_fill_viridis(option="D", name="Adjusted P-value\n(-log10)") +
   scale_y_continuous(name = "Count")
-ggsave(filename="thyroid_normal_male_female_spc_hyp.png", plot=normal_gender_sp_mod_hyp, path="./plots/wgcna_modules_enrichment/", width = 10, height = 5)
-ggsave(filename="thyroid_normal_male_female_spc_hyp.pdf", plot=normal_gender_sp_mod_hyp, path="./plots/wgcna_modules_enrichment/", width = 10, height = 5)
+ggsave(filename="thyroid_normal_male_female_spc_hyp.png", plot=normal_gender_sp_mod_hyp, path="./plots/wgcna_modules_enrichment/", width = 11, height = 6)
+ggsave(filename="thyroid_normal_male_female_spc_hyp.pdf", plot=normal_gender_sp_mod_hyp, path="./plots/wgcna_modules_enrichment/", width = 11, height = 6)
 unlink("thyroid_normal_male_female_spc_hyp.png")
 unlink("thyroid_normal_male_female_spc_hyp.pdf")
 #

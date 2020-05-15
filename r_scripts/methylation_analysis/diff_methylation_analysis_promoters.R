@@ -39,6 +39,13 @@ stad_TvsN <- read_tsv("./files/stomach_males_females_signf_degs.txt")
 stad_MvsF <- read_tsv("./files/stomach_tumour_normal_signf_degs.txt")
 
 
+# genes escaping X-Chromosome inactivation
+escape <- read_tsv(file = "./data/XCI/XCI_escape.txt") %>%
+  dplyr::select(gene = `Gene name`, status = `Combined XCI status`) %>%
+  filter(status == "escape")
+
+
+
 # differential expression tables
 
 # Thyroid - Tumour vs Normal
@@ -142,6 +149,21 @@ thca_TvsN_females <- wilcoxon_diff_methyl(
   females[females$sample_type_id == "11", "sample"]$sample,
   thca_meth_mat)
 
+# fisher test p-value
+thca_TvsN_females_signf_degs %>%
+  inner_join(thca_TvsN_females %>% rename(fdr=FDR), by = c("geneName" = "genes")) %>%
+  filter(fdr<0.05) %>%
+  nrow()
+
+thca_diff_expr_TvsN_females %>%
+  anti_join(thca_TvsN_females_signf_degs, by = "genes") %>%
+  inner_join(thca_TvsN_females %>% rename(fdr=FDR), by = c("geneName" = "genes")) %>%
+  filter(fdr<0.05) %>%
+  nrow()
+
+fisher.test(matrix(c(182, 163, 2745, 3470), 2, 2), alternative = "greater")
+
+
 # Thyroid T vs N males
 males <- thyroid_tcga_meta %>%
   filter(gender == "male")
@@ -150,6 +172,20 @@ thca_TvsN_males <- wilcoxon_diff_methyl(
   males[males$sample_type_id == "01", "sample"]$sample,
   males[males$sample_type_id == "11", "sample"]$sample,
   thca_meth_mat)
+
+# fisher test p-value
+thca_TvsN_males_signf_degs %>%
+  inner_join(thca_TvsN_males %>% rename(fdr=FDR), by = c("geneName" = "genes")) %>%
+  filter(fdr<0.05) %>%
+  nrow()
+
+thca_diff_expr_TvsN_males %>%
+  anti_join(thca_TvsN_males_signf_degs, by = "genes") %>%
+  inner_join(thca_TvsN_males %>% rename(fdr=FDR), by = c("geneName" = "genes")) %>%
+  filter(fdr<0.05) %>%
+  nrow()
+
+fisher.test(matrix(c(134, 374, 585, 5467), 2, 2), alternative = "greater")
 
 
 # Thyroid M vs F tumour
@@ -161,6 +197,21 @@ thca_MvsF_tumour <- wilcoxon_diff_methyl(
   tumour[tumour$gender == "female", "sample"]$sample,
   thca_meth_mat)
 
+# fisher test p-value
+thca_MvsF_tumours_signf_degs %>%
+  inner_join(thca_MvsF_tumour %>% rename(fdr=FDR), by = c("geneName" = "genes")) %>%
+  filter(fdr<0.05) %>%
+  nrow()
+
+thca_diff_expr_MvsF_tumours %>%
+  anti_join(thca_MvsF_tumours_signf_degs, by = "genes") %>%
+  inner_join(thca_MvsF_tumour %>% rename(fdr=FDR), by = c("geneName" = "genes")) %>%
+  filter(fdr<0.05) %>%
+  nrow()
+
+fisher.test(matrix(c(12, 49, 241, 6258), 2, 2), alternative = "greater")
+
+
 # Stomach M vs F tumour
 tumour <- stomach_tcga_meta %>%
   filter(sample_type_id == "01")
@@ -170,6 +221,19 @@ stad_MvsF_tumour <- wilcoxon_diff_methyl(
   tumour[tumour$gender == "female", "sample"]$sample,
   stad_meth_mat)
 
+# fisher test p-value
+stad_MvsF_tumours_signf_degs %>%
+  inner_join(stad_MvsF_tumour %>% rename(fdr=FDR), by = c("geneName" = "genes")) %>%
+  filter(fdr<0.05) %>%
+  nrow()
+
+stad_diff_expr_MvsF_tumours %>%
+  anti_join(stad_MvsF_tumours_signf_degs, by = "genes") %>%
+  inner_join(stad_MvsF_tumour %>% rename(fdr=FDR), by = c("geneName" = "genes")) %>%
+  filter(fdr<0.05) %>%
+  nrow()
+
+fisher.test(matrix(c(15, 13, 213, 6336), 2, 2), alternative = "greater")
 
 
 
@@ -336,7 +400,7 @@ volcano <- thca_MvsF_tumour %>%
     plot.title = element_text(color = "black", size = 14, hjust = 0.5)) +
   scale_colour_manual(values = c("grey60", "red"), labels = c("No", "Yes"), name = "Differentially\nmethylated") +
   scale_x_continuous(limits = c(-2,2)) +
-  labs(x = "Fold-change (log2)", y = "FDR (-log10)", title = "Thyroid tumours - Male Vs Female\nDifferential methylation of DEGs")
+  labs(x = "Fold-change (log2)", y = "FDR (-log10)", title = "Thyroid tumours - Male Vs Female\nDifferential methylation of SBGs")
 
 ggsave(filename="07_thyroid_MvsF_tumours_degs_methylation_state_volcano.png", plot=volcano, path = "./plots/methylation_analysis_differential/", width=5, height=5)
 unlink("07_thyroid_MvsF_tumours_degs_methylation_state_volcano.png")
@@ -409,7 +473,7 @@ volcano <- stad_MvsF_tumour %>%
     plot.title = element_text(color = "black", size = 14, hjust = 0.5)) +
   scale_colour_manual(values = c("grey60", "red"), labels = c("No", "Yes"), name = "Differentially\nmethylated") +
   scale_x_continuous(limits = c(-2,2)) +
-  labs(x = "Fold-change (log2)", y = "FDR (-log10)", title = "Stomach tumours - Male Vs Female\nDifferential methylation of DEGs")
+  labs(x = "Fold-change (log2)", y = "FDR (-log10)", title = "Stomach tumours - Male Vs Female\nDifferential methylation of SBGs")
 
 ggsave(filename="10_stomach_MvsF_tumours_degs_methylation_state_volcano.png", plot=volcano, path = "./plots/methylation_analysis_differential/", width=5, height=5)
 unlink("10_stomach_MvsF_tumours_degs_methylation_state_volcano.png")

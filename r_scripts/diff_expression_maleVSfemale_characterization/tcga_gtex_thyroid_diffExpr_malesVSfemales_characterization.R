@@ -223,7 +223,7 @@ tn_enr_bp <- all_diff_genes %>%
     axis.title.y=element_blank(),
     axis.text.y=element_text(colour="black", size=12),
     axis.text.x=element_text(colour="black", size=13),
-    plot.title = element_blank(),
+    plot.title = element_text(colour="black", size=18, hjust = 0.5),
     strip.text.y = element_text(colour="black", size=14),
     strip.text.x = element_text(colour="black", size=14),
     strip.background = element_blank(),
@@ -275,6 +275,42 @@ unlink("thyroid_tumour_normal_enr_bp_normal_specific.png")
 unlink("thyroid_tumour_normal_enr_bp_normal_specific.pdf")
 
 write_rds(tn_enr_bp2, "./r_objects/plots/figure2/thyroid_tumour_normal_enrichment_barplot_normal_specific.rds")
+
+
+tn_enr_bp3 <- all_diff_genes %>%
+  filter(p.adjust < 0.2 & state == "tumour_specific" & Description != "POS") %>%
+  mutate(log10_p = -log10(p.adjust)) %>%
+  group_by(state, Description) %>%
+  top_n(5, log10_p) %>%
+  ungroup() %>%
+  mutate_if(is.character, as.factor) %>%
+  mutate(ID = fct_reorder(ID, Count), Description = fct_infreq(Description)) %>%
+  ggplot(mapping = aes(x=ID, y = Count, fill = log10_p)) +
+  geom_bar(stat="identity") +
+  theme_classic() +
+  facet_grid(Description ~ .,
+    scales = "free",
+    space = "free_y",
+    labeller=labeller(Description = c("GO_BP" = "GO BP", "KEGG" = "KEGG"))) +
+  theme(
+    plot.title=element_text(colour="black", size=18, hjust = 0.5),
+    axis.title.x=element_text(colour="black", size=17),
+    axis.title.y=element_blank(),
+    axis.text.y=element_text(colour="black", size=14),
+    axis.text.x=element_text(colour="black", size=17),
+    strip.text.y = element_text(colour="black", size=17),
+    strip.text.x = element_text(colour="black", size=20),
+    strip.background = element_blank(),
+    legend.text = element_text(colour="black", size=14),
+    legend.title = element_text(colour="black", size=15)) +
+  coord_flip() +
+  scale_fill_viridis(option="D", name="Adjusted P-value\n(-log10)") +
+  labs(title = "Thyroid")
+
+ggsave(filename="thyroid_tumour_normal_enr_bp_tumour_specific.png", plot=tn_enr_bp3, path="./plots/diff_expression_maleVSfemale_gtex_normal/", width = 10, height = 4)
+ggsave(filename="thyroid_tumour_normal_enr_bp_tumour_specific.pdf", plot=tn_enr_bp3, path="./plots/diff_expression_maleVSfemale_gtex_normal/", width = 10, height = 4)
+unlink("thyroid_tumour_normal_enr_bp_tumour_specific.png")
+unlink("thyroid_tumour_normal_enr_bp_tumour_specific.pdf")
 
 
 
@@ -386,6 +422,26 @@ thca_degs_MvsF_drivers <- tumour_normal_signf_degs %>%
 diff_expr_normal_table %>%
   filter( !geneName %in% (tumour_normal_signf_degs %>% filter(state == "normal_specific" | state == "common") %>% pull(geneName)) ) %>%
   inner_join(driver_genes_summary, by = c("geneName" = "Gene"))
+
+
+# genes escaping X-Chromosome inactivation
+escape <- read_tsv(file = "./data/XCI/XCI_escape.txt") %>%
+  dplyr::select(gene = `Gene name`, status = `Combined XCI status`) %>%
+  filter(status == "escape")
+
+
+
+tumour_normal_signf_degs %>% filter(state == "normal_specific", chrom == "chrX") %>% semi_join(escape, by=c("geneName" = "gene"))
+diff_expr_normal_table %>% filter(chrom == "chrX") %>% semi_join(escape, by=c("geneName" = "gene"))
+fisher.test(matrix(c(6,19,47,334),2,2), alternative = "greater")$p.value
+
+tumour_normal_signf_degs %>% filter(state == "tumour_specific", chrom == "chrX") %>% semi_join(escape, by=c("geneName" = "gene"))
+diff_expr_normal_table %>% filter(chrom == "chrX") %>% semi_join(escape, by=c("geneName" = "gene"))
+fisher.test(matrix(c(3,2,50,351),2,2), alternative = "greater")$p.value
+
+tumour_normal_signf_degs %>% filter(state == "common", chrom == "chrX") %>% semi_join(escape, by=c("geneName" = "gene"))
+diff_expr_normal_table %>% filter(chrom == "chrX") %>% semi_join(escape, by=c("geneName" = "gene"))
+fisher.test(matrix(c(29,1,24,352),2,2), alternative = "greater")$p.value
 
 
 

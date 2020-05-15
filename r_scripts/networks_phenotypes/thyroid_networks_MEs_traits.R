@@ -165,7 +165,7 @@ tumourME_females_rsq <- tumourME_females_mod %>%
 pdf(file="./plots/wgcna_networks_traits/thyroid_tumourME_females_cor.pdf", height=1.5, width=3.5)
 mat <- tumourME_females_pval
 mat2 <- tumourME_females_rsq
-column_labels = structure(c("M1", "M2"), names = colnames(mat))
+column_labels = structure(c("M1T", "M2T"), names = colnames(mat))
 row_labels = structure(c("Survival (days)", "Histological type", "Tumour stage"), names = rownames(mat))
 
 #col_fun = colorRamp2(c(0, 10, 18), brewer.pal(3, "Reds"))

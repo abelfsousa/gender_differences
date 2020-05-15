@@ -464,6 +464,33 @@ stad_degs_TvsN_drivers <- males_females_signf_degs %>%
   inner_join(driver_genes_summary, by = c("geneName" = "Gene"))
 
 
+# enrichment test for cancer driver genes
+males_females_signf_degs %>% filter(state == "common") %>% semi_join(driver_genes_summary, by = c("geneName" = "Gene"))
+males_females_signf_degs %>% filter(state == "common") %>% anti_join(driver_genes_summary, by = c("geneName" = "Gene"))
+diff_expr_males_table %>% semi_join(driver_genes_summary, by = c("geneName" = "Gene"))
+diff_expr_males_table %>% anti_join(driver_genes_summary, by = c("geneName" = "Gene"))
+fisher.test(matrix(c(25,1527,236,10054),2,2), alternative = "greater")$p.value
+
+
+# enrichment test for cancer gene census list
+males_females_signf_degs %>% filter(state == "common") %>% semi_join(cancer_genes %>% dplyr::select(geneName=`Gene Symbol`), by = "geneName")
+males_females_signf_degs %>% filter(state == "common") %>% anti_join(cancer_genes %>% dplyr::select(geneName=`Gene Symbol`), by = "geneName")
+diff_expr_males_table %>% semi_join(cancer_genes %>% dplyr::select(geneName=`Gene Symbol`), by = "geneName")
+diff_expr_males_table %>% anti_join(cancer_genes %>% dplyr::select(geneName=`Gene Symbol`), by = "geneName")
+fisher.test(matrix(c(71,1481,505,9785),2,2), alternative = "greater")$p.value
+
+
+# enrichment test for oncogenes
+# load oncogenes table
+ocgs <- read_tsv("./data/human_oncogenes/ongene_human.txt")
+
+males_females_signf_degs %>% filter(state == "common") %>% semi_join(ocgs, by = c("geneName" = "OncogeneName"))
+males_females_signf_degs %>% filter(state == "common") %>% anti_join(ocgs, by = c("geneName" = "OncogeneName"))
+diff_expr_males_table %>% semi_join(ocgs, by = c("geneName" = "OncogeneName"))
+diff_expr_males_table %>% anti_join(ocgs, by = c("geneName" = "OncogeneName"))
+fisher.test(matrix(c(85,1467,437,9853),2,2), alternative = "greater")$p.value
+
+
 
 
 save(list=ls(), file="r_workspaces/tcga_stomach_diffExpr_tumourVSnormal_characterization.RData")

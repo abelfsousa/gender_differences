@@ -219,7 +219,7 @@ unlink("thyroid_stomach_degs_logFC_barpl.png")
 
 # fraction of DEGs that are TSGs
 degs_ts <- degs %>%
-  inner_join(tsgs %>% dplyr::select(GeneSymbol), by = c("geneName" = "GeneSymbol")) %>%
+  semi_join(tsgs, by = c("geneName" = "GeneSymbol")) %>%
   group_by(tissue, state) %>%
   count() %>%
   ungroup()
@@ -280,6 +280,10 @@ thyroid_contingency <- fraction_degs_tsg %>%
   as.data.frame %>%
   column_to_rownames("state") %>%
   t()
+
+thyroid_contingency[1,2] <- thyroid_contingency[1,2] - thyroid_contingency[1,1]
+thyroid_contingency[2,2] <- thyroid_contingency[2,2] - thyroid_contingency[2,1]
+
 thyroid_female_pval <- fisher.test(thyroid_contingency, alternative = "greater")$p.value
 
 
@@ -291,7 +295,10 @@ thyroid_contingency <- fraction_degs_tsg %>%
   as.data.frame %>%
   column_to_rownames("state") %>%
   t()
-fisher.test(thyroid_contingency, alternative = "greater")
+
+thyroid_contingency[1,2] <- thyroid_contingency[1,2] - thyroid_contingency[1,1]
+thyroid_contingency[2,2] <- thyroid_contingency[2,2] - thyroid_contingency[2,1]
+
 thyroid_male_pval <- fisher.test(thyroid_contingency, alternative = "greater")$p.value
 
 
@@ -315,6 +322,10 @@ stomach_contingency <- fraction_degs_tsg %>%
   as.data.frame %>%
   column_to_rownames("state") %>%
   t()
+
+stomach_contingency[1,2] <- stomach_contingency[1,2] - stomach_contingency[1,1]
+stomach_contingency[2,2] <- stomach_contingency[2,2] - stomach_contingency[2,1]
+
 stomach_male_pval <- fisher.test(stomach_contingency, alternative = "greater")$p.value
 
 stomach_contingency <- fraction_degs_tsg %>%
@@ -325,6 +336,10 @@ stomach_contingency <- fraction_degs_tsg %>%
   as.data.frame %>%
   column_to_rownames("state") %>%
   t()
+
+stomach_contingency[1,2] <- stomach_contingency[1,2] - stomach_contingency[1,1]
+stomach_contingency[2,2] <- stomach_contingency[2,2] - stomach_contingency[2,1]
+
 stomach_female_pval <- fisher.test(stomach_contingency, alternative = "greater")$p.value
 
 
@@ -521,7 +536,7 @@ stomach_degs_tsgs <- all_degs_tsgs %>%
     facet_wrap(~ type,
       scales = "free_y",
       labeller=labeller(type = c("All DEGs" = "DEGs enrichment of TSGs", "DEGs TSGs" = "DEGs with TSG activity"))) +
-    scale_fill_manual(values=c("#1b9e77", "#a6761d"), name="Expression", labels = c("Down-regulated tumour", "Up-regulated tumour")) +
+    scale_fill_manual(values=c("#1b9e77", "#a6761d"), name="Expression", labels = c("Under-expressed tumour", "Over-expressed tumour")) +
     theme_classic() +
     theme(
       axis.title = element_text(colour="black", size=18),
@@ -543,7 +558,7 @@ unlink("stomach_degs_tsgs.pdf")
 
 # thyroid
 pvalues <- tibble(
-  pval = c(paste0("P-value = 1.1e-4"), paste0("P-value = ", round(thyroid_male_pval, 2))),
+  pval = c(paste0("P-value = 9.1e-5"), paste0("P-value = ", round(thyroid_male_pval, 2))),
   type = factor(c("All DEGs"), levels = c("All DEGs", "DEGs TSGs")))
 
 
@@ -557,7 +572,7 @@ thyroid_degs_tsgs <- all_degs_tsgs %>%
     facet_wrap(~ type,
       scales = "free_y",
       labeller=labeller(type = c("All DEGs" = "DEGs enrichment of TSGs", "DEGs TSGs" = "DEGs with TSG activity"))) +
-    scale_fill_manual(values=c("#1b9e77", "#a6761d"), name="Expression", labels = c("Down-regulated tumour", "Up-regulated tumour")) +
+    scale_fill_manual(values=c("#1b9e77", "#a6761d"), name="Expression", labels = c("Under-expressed tumour", "Over-expressed tumour")) +
     theme_classic() +
     theme(
       axis.title = element_text(colour="black", size=18),

@@ -124,7 +124,7 @@ tumourME_males_rsq <- tumourME_males_mod %>%
 pdf(file="./plots/wgcna_networks_traits/stomach_tumourME_males_cor.pdf", height=1.5, width=4)
 mat <- tumourME_males_pval
 mat2 <- tumourME_males_rsq
-column_labels = structure(c("M1", "M2", "M3"), names = colnames(mat))
+column_labels = structure(c("M1S", "M2S", "M3S"), names = colnames(mat))
 row_labels = structure(c("Survival (days)", "Histological type", "Tumour stage"), names = rownames(mat))
 
 #col_fun = colorRamp2(c(0, 10, 18), brewer.pal(3, "Reds"))

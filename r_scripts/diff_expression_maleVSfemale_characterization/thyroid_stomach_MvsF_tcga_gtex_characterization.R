@@ -117,18 +117,18 @@ normal_specific_enrch <- enrch %>%
 
 normal_specific_enrch_thyroid <- normal_specific_enrch %>%
   filter(tissue == "Thyroid") %>%
-  ggplot(mapping = aes(x = value, color = ID, fill = ID)) +
-    geom_density(alpha = 0.4) +
-    geom_vline(xintercept = 0, linetype="dashed", color = "black", size=0.3) +
-    facet_wrap(
-      ~ Description,
-      ncol = 2,
-      nrow = 2,
+  ggplot(mapping = aes(x = ID, y = value, fill = ID)) +
+    geom_boxplot(alpha = 0.4, show.legend = FALSE) +
+    geom_hline(yintercept = 0, linetype="dashed", color = "black", size=0.3) +
+    #facet_wrap(~ Description,
+    #  nrow = 2,
+    #  scales = "free_y",
+    #  labeller=labeller(Description = c("GO_BP" = "GO BP", "KEGG" = "KEGG"))) +
+    facet_grid(Description ~ .,
+      scales = "free",
       labeller=labeller(Description = c("GO_BP" = "GO BP", "KEGG" = "KEGG"))) +
-    scale_color_viridis(discrete = TRUE, option = "C", name = "Term") +
+    coord_flip() +
     scale_fill_viridis(discrete = TRUE, option = "C", name = "Term") +
-    #scale_colour_brewer(palette = "Set3", name = "Term") +
-    #scale_fill_brewer(palette = "Set3", name = "Term") +
     theme_classic() +
     theme(
       axis.title = element_text(colour="black", size=15),
@@ -139,28 +139,24 @@ normal_specific_enrch_thyroid <- normal_specific_enrch %>%
       strip.background = element_blank(),
       strip.text = element_text(colour="black", size=15),
       plot.title=element_text(colour="black", size=18, hjust = 0.5)) +
-    labs(x = "log2FC", y = "Density", title = "Thyroid")
+    labs(x = "", y = "log2FC", title = "Thyroid")
 
-ggsave(filename="normal_specific_enrch_thyroid.png", plot = normal_specific_enrch_thyroid, path = "./plots/diff_expression_maleVSfemale_gtex_normal", width=10, height=4)
-ggsave(filename="normal_specific_enrch_thyroid.pdf", plot = normal_specific_enrch_thyroid, path = "./plots/diff_expression_maleVSfemale_gtex_normal", width=10, height=4)
+ggsave(filename="normal_specific_enrch_thyroid.png", plot = normal_specific_enrch_thyroid, path = "./plots/diff_expression_maleVSfemale_gtex_normal", width=8, height=4)
+ggsave(filename="normal_specific_enrch_thyroid.pdf", plot = normal_specific_enrch_thyroid, path = "./plots/diff_expression_maleVSfemale_gtex_normal", width=8, height=4)
 unlink("normal_specific_enrch_thyroid.png")
 unlink("normal_specific_enrch_thyroid.pdf")
 
 
-
-
 normal_specific_enrch_stomach <- normal_specific_enrch %>%
   filter(tissue == "Stomach", Description != "POS") %>%
-  ggplot(mapping = aes(x = value, color = ID, fill = ID)) +
-    geom_density(alpha = 0.4) +
-    geom_vline(xintercept = 0, linetype="dashed", color = "black", size=0.3) +
-    facet_wrap(
-      ~ Description,
-      labeller=labeller(Description = c("GO_BP" = "GO BP", "KEGG" = "KEGG", "POS" = "Positional"))) +
-    #scale_color_viridis(discrete = TRUE, option = "C", name = "Term") +
-    #scale_fill_viridis(discrete = TRUE, option = "C", name = "Term") +
-    scale_colour_brewer(palette = "Set1", name = "Term") +
-    scale_fill_brewer(palette = "Set1", name = "Term") +
+  ggplot(mapping = aes(x = ID, y = value, fill = ID)) +
+    geom_boxplot(alpha = 0.4, show.legend = FALSE) +
+    geom_hline(yintercept = 0, linetype="dashed", color = "black", size=0.3) +
+    facet_grid(Description ~ .,
+      scales = "free",
+      labeller=labeller(Description = c("GO_BP" = "GO BP", "KEGG" = "KEGG"))) +
+    coord_flip() +
+    scale_fill_viridis(discrete = TRUE, option = "C", name = "Term") +
     theme_classic() +
     theme(
       axis.title = element_text(colour="black", size=15),
@@ -170,12 +166,11 @@ normal_specific_enrch_stomach <- normal_specific_enrch %>%
       legend.title=element_text(colour="black", size=15),
       strip.background = element_blank(),
       strip.text = element_text(colour="black", size=15),
-      plot.title=element_text(colour="black", size=18, hjust = 0.5),
-      panel.spacing = unit(0.5, "lines")) +
-    labs(x = "log2FC", y = "Density", title = "Stomach")
+      plot.title=element_text(colour="black", size=18, hjust = 0.5)) +
+    labs(x = "", y = "log2FC", title = "Stomach")
 
-ggsave(filename="normal_specific_enrch_stomach.png", plot = normal_specific_enrch_stomach, path = "./plots/diff_expression_maleVSfemale_gtex_normal", width=10, height=4)
-ggsave(filename="normal_specific_enrch_stomach.pdf", plot = normal_specific_enrch_stomach, path = "./plots/diff_expression_maleVSfemale_gtex_normal", width=10, height=4)
+ggsave(filename="normal_specific_enrch_stomach.png", plot = normal_specific_enrch_stomach, path = "./plots/diff_expression_maleVSfemale_gtex_normal", width=8, height=4)
+ggsave(filename="normal_specific_enrch_stomach.pdf", plot = normal_specific_enrch_stomach, path = "./plots/diff_expression_maleVSfemale_gtex_normal", width=8, height=4)
 unlink("normal_specific_enrch_stomach.png")
 unlink("normal_specific_enrch_stomach.pdf")
 

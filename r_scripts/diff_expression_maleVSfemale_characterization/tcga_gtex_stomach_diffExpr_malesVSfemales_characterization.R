@@ -223,7 +223,7 @@ tn_enr_bp <- tn_enr_bp + theme(
     axis.title.y=element_blank(),
     axis.text.y=element_text(colour="black", size=12),
     axis.text.x=element_text(colour="black", size=13),
-    plot.title = element_blank(),
+    plot.title = element_text(colour="black", size=18, hjust = 0.5),
     strip.text.y = element_text(colour="black", size=15),
     strip.text.x = element_text(colour="black", size=14),
     strip.background = element_blank(),
@@ -276,6 +276,43 @@ unlink("stomach_tumour_normal_enr_bp_normal_specific.png")
 unlink("stomach_tumour_normal_enr_bp_normal_specific.pdf")
 
 write_rds(tn_enr_bp2, "./r_objects/plots/figure2/stomach_tumour_normal_enrichment_barplot_normal_specific.rds")
+
+
+tn_enr_bp3 <- all_diff_genes %>%
+  filter(p.adjust < 0.2 & state == "tumour_specific" & Description != "POS") %>%
+  mutate(log10_p = -log10(p.adjust)) %>%
+  group_by(state, Description) %>%
+  top_n(5, log10_p) %>%
+  ungroup() %>%
+  filter(ID %in% c("SEXUAL REPRODUCTION", "REGULATION OF HORMONE LEVELS", "STEROL METABOLIC PROCESS", "TRIGLYCERIDE CATABOLIC PROCESS", "HOMOLOGOUS RECOMBINATION", "ETHER LIPID METABOLISM")) %>%
+  mutate_if(is.character, as.factor) %>%
+  mutate(ID = fct_reorder(ID, Count), Description = fct_infreq(Description)) %>%
+  ggplot(mapping = aes(x=ID, y = Count, fill = log10_p)) +
+  geom_bar(stat="identity") +
+  theme_classic() +
+  facet_grid(Description ~ .,
+    scales = "free",
+    space = "free_y",
+    labeller=labeller(Description = c("GO_BP" = "GO BP", "KEGG" = "KEGG"))) +
+  theme(
+    plot.title=element_text(colour="black", size=18, hjust = 0.5),
+    axis.title.x=element_text(colour="black", size=17),
+    axis.title.y=element_blank(),
+    axis.text.y=element_text(colour="black", size=14),
+    axis.text.x=element_text(colour="black", size=17),
+    strip.text.y = element_text(colour="black", size=17),
+    strip.text.x = element_text(colour="black", size=20),
+    strip.background = element_blank(),
+    legend.text = element_text(colour="black", size=14),
+    legend.title = element_text(colour="black", size=15)) +
+  coord_flip() +
+  scale_fill_viridis(option="D", name="Adjusted P-value\n(-log10)") +
+  labs(title = "Stomach")
+
+ggsave(filename="stomach_tumour_normal_enr_bp_tumour_specific.png", plot=tn_enr_bp3, path="./plots/diff_expression_maleVSfemale_gtex_normal/", width = 10, height = 4)
+ggsave(filename="stomach_tumour_normal_enr_bp_tumour_specific.pdf", plot=tn_enr_bp3, path="./plots/diff_expression_maleVSfemale_gtex_normal/", width = 10, height = 4)
+unlink("stomach_tumour_normal_enr_bp_tumour_specific.png")
+unlink("stomach_tumour_normal_enr_bp_tumour_specific.pdf")
 
 
 
@@ -386,7 +423,24 @@ stad_degs_MvsF_drivers <- tumour_normal_signf_degs %>%
   inner_join(driver_genes_summary, by = c("geneName" = "Gene"))
 
 
+# genes escaping X-Chromosome inactivation
+escape <- read_tsv(file = "./data/XCI/XCI_escape.txt") %>%
+  dplyr::select(gene = `Gene name`, status = `Combined XCI status`) %>%
+  filter(status == "escape")
 
+
+
+tumour_normal_signf_degs %>% filter(state == "normal_specific", chrom == "chrX") %>% semi_join(escape, by=c("geneName" = "gene"))
+diff_expr_normal_table %>% filter(chrom == "chrX") %>% semi_join(escape, by=c("geneName" = "gene"))
+fisher.test(matrix(c(4,0,50,359),2,2), alternative = "greater")$p.value
+
+tumour_normal_signf_degs %>% filter(state == "tumour_specific", chrom == "chrX") %>% semi_join(escape, by=c("geneName" = "gene"))
+diff_expr_normal_table %>% filter(chrom == "chrX") %>% semi_join(escape, by=c("geneName" = "gene"))
+fisher.test(matrix(c(5,2,49,357),2,2), alternative = "greater")$p.value
+
+tumour_normal_signf_degs %>% filter(state == "common", chrom == "chrX") %>% semi_join(escape, by=c("geneName" = "gene"))
+diff_expr_normal_table %>% filter(chrom == "chrX") %>% semi_join(escape, by=c("geneName" = "gene"))
+fisher.test(matrix(c(22,0,32,359),2,2), alternative = "greater")$p.value
 
 
 

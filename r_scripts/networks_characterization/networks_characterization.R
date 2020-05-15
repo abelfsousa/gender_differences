@@ -99,6 +99,15 @@ unlink("wgcna_modules.pdf")
 
 
 # number of genes by module
+
+median_size <- networks %>%
+  group_by(tissue, type, gender, moduleL) %>%
+  tally() %>%
+  summarise(n = median(n)) %>%
+  ungroup() %>%
+  mutate(n = str_c("median = ", round(n), sep="")) %>%
+  mutate(y = map_dbl(tissue, ~ if(.x == "Stomach"){4000}else{3000}))
+
 wgcna_modules_genes <- networks %>%
   group_by(tissue, type, gender, moduleL, moduleN) %>%
   summarise( n_genes = n() ) %>%
@@ -108,6 +117,7 @@ wgcna_modules_genes <- networks %>%
   mutate(moduleN = fct_reorder(moduleN, n_genes), moduleL = fct_reorder(moduleL, n_genes)) %>%
   ggplot() +
     geom_col(mapping = aes(x = gender, y = n_genes, group = moduleN, fill = gender), position = "dodge", color = "black", lwd = 0.1) +
+    geom_text(data = median_size, mapping = aes(x = gender, y = y, label = n)) +
     scale_fill_manual(values=c("#fbb4b9", "#74a9cf"), guide=F) +
     facet_grid(tissue ~ type, scales = "free") +
     theme_classic() +
