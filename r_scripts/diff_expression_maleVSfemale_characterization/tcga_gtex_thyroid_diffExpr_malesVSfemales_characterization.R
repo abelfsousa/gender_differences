@@ -13,6 +13,7 @@ library(viridis)
 library(mygene)
 library(data.table)
 library(ggVennDiagram)
+library(eulerr)
 
 
 source("./r_scripts/utils.R")
@@ -107,6 +108,12 @@ unlink("thyroid_tumour_normal_signf_degs_venn_gg.png")
 unlink("thyroid_tumour_normal_signf_degs_venn_gg.pdf")
 
 write_rds(ggVenn, "./r_objects/plots/figure2/thyroid_tumour_normal_signf_degs_maleVsfemale_venn_ggplot.rds")
+
+
+pdf(file = "./plots/diff_expression_maleVSfemale_gtex_normal/thyroid_tumour_normal_signf_degs_venn_eulerr.pdf", width=4, height=4)
+euler_venn <- euler(c("A" = as.numeric(table(tumour_normal_signf_degs$state)["normal_specific"]), "B" = as.numeric(table(tumour_normal_signf_degs$state)["tumour_specific"]), "A&B" = as.numeric(table(tumour_normal_signf_degs$state)["common"])))
+plot(euler_venn, quantities = TRUE, fills=c("#a1d76a", "#ca0020", "#bf812d"), labels = NULL)
+dev.off()
 
 
 

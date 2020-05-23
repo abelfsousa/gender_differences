@@ -77,7 +77,7 @@ ha2 <- columnAnnotation(
   show_legend = c("Preservation" = FALSE),
   border = TRUE)
 
-lgd1 <- Legend(at = 0:3, title = "Overlap", legend_gp = gpar(fill = c("#bdbdbd", "#fee8c8", "#fdbb84", "#e34a33")))
+lgd1 <- Legend(labels = c("absent", "low", "moderate", "high"), title = "Overlap", legend_gp = gpar(fill = c("#bdbdbd", "#fee8c8", "#fdbb84", "#e34a33")))
 lgd2 <- Legend(labels = c("gender-specific", "lowly", "moderately", "highly"), title = "Preservation", legend_gp = gpar(fill = c("#31a354", "#9ecae1", "#4292c6", "#08306b")))
 pd <- packLegend(lgd1, lgd2)
 
@@ -215,7 +215,7 @@ ha2 <- columnAnnotation(
   show_legend = c("Preservation" = FALSE),
   border = TRUE)
 
-lgd1 <- Legend(at = 0:3, title = "Overlap", legend_gp = gpar(fill = c("#bdbdbd", "#fee8c8", "#fdbb84", "#e34a33")))
+lgd1 <- Legend(labels = c("absent", "low", "moderate", "high"), title = "Overlap", legend_gp = gpar(fill = c("#bdbdbd", "#fee8c8", "#fdbb84", "#e34a33")))
 lgd2 <- Legend(labels = c("gender-specific", "lowly", "moderately", "highly"), title = "Preservation", legend_gp = gpar(fill = c("#31a354", "#9ecae1", "#4292c6", "#08306b")))
 pd <- packLegend(lgd1, lgd2)
 

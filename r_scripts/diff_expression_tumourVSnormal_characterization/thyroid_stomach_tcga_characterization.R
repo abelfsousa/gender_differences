@@ -232,36 +232,13 @@ fraction_degs_tsg <- degs %>%
   mutate(fraction = tsgs/n)
 
 
-# fisher-test
-# null hypothesis:
-# the number of TSGs by gene group (common, female-specific, male-specific) is similar
-
-thyroid_contingency <- fraction_degs_tsg %>%
-  filter(tissue == "Thyroid", state != "common") %>%
-  mutate(not_tsgs = n-tsgs) %>%
-  dplyr::select(state, tsgs, not_tsgs) %>%
-  as.data.frame %>%
-  column_to_rownames("state") %>%
-  t()
-fisher.test(thyroid_contingency, alternative = "greater")
-
-stomach_contingency <- fraction_degs_tsg %>%
-  filter(tissue == "Stomach", state != "common") %>%
-  mutate(not_tsgs = n-tsgs) %>%
-  dplyr::select(state, tsgs, not_tsgs) %>%
-  as.data.frame %>%
-  column_to_rownames("state") %>%
-  t()
-fisher.test(stomach_contingency, alternative = "greater")
-
-
-
 # comparison against the background
 
 # fisher-test
-# null hypothesis:
-# the number of TSGs in the group of interest is similar to the background
+# H0: the number of TSGs in the group of interest is less than or equal to the background
+# H1: the number of TSGs in the group of interest is higher than the background
 
+#thyroid
 
 all_genes <- read_tsv("./files/diff_expr_thyroid_males_tcga_tumourVSnormal_edgeR.txt")
 
@@ -302,8 +279,7 @@ thyroid_contingency[2,2] <- thyroid_contingency[2,2] - thyroid_contingency[2,1]
 thyroid_male_pval <- fisher.test(thyroid_contingency, alternative = "greater")$p.value
 
 
-
-
+#stomach
 
 all_genes <- read_tsv("./files/diff_expr_stomach_males_tcga_tumourVSnormal_edgeR.txt")
 
@@ -388,6 +364,7 @@ unlink("thyroid_stomach_degs_tsgs_barpl.png")
 # fraction of DEGs that are onco-genes
 degs_ocg <- degs %>%
   inner_join(ocgs %>% filter(!(OncogeneName %in% tsgs$GeneSymbol)) %>% dplyr::select(OncogeneName), by = c("geneName" = "OncogeneName")) %>%
+  #inner_join(ocgs, by = c("geneName" = "OncogeneName")) %>%
   group_by(tissue, state) %>%
   count() %>%
   ungroup()
@@ -400,35 +377,102 @@ fraction_degs_ocg <- degs %>%
   mutate(fraction = ocgs/n)
 
 
+# comparison against the background
+
 # fisher-test
-# null hypothesis:
-# the number of OCGs by gene group (common, female-specific, male-specific) is similar
+# H0: the number of OCGs in the group of interest is less than or equal to the background
+# H1: the number of OCGs in the group of interest is higher than the background
 
-thyroid_contingency2 <- fraction_degs_ocg %>%
-  filter(tissue == "Thyroid", state != "common") %>%
-  mutate(not_ocgs = n-ocgs) %>%
-  dplyr::select(state, ocgs, not_ocgs) %>%
-  as.data.frame %>%
-  column_to_rownames("state") %>%
-  fisher.test()
+#thyroid
 
-stomach_contingency2 <- fraction_degs_ocg %>%
-  filter(tissue == "Stomach", state != "common") %>%
-  mutate(not_ocgs = n-ocgs) %>%
-  dplyr::select(state, ocgs, not_ocgs) %>%
-  as.data.frame %>%
-  column_to_rownames("state") %>%
-  fisher.test()
+# all_genes <- read_tsv("./files/diff_expr_thyroid_males_tcga_tumourVSnormal_edgeR.txt")
+#
+# background <- all_genes %>%
+#   summarise(n = n()) %>%
+#   mutate(ocgs = all_genes %>% semi_join(ocgs, by = c("geneName" = "OncogeneName")) %>% nrow()) %>%
+#   mutate(not_ocgs = n-ocgs) %>%
+#   mutate(state = "background") %>%
+#   dplyr::select(-n)
+#
+# thyroid_contingency <- fraction_degs_ocg %>%
+#   filter(tissue == "Thyroid", state == "female_specific") %>%
+#   mutate(not_ocgs = n-ocgs) %>%
+#   dplyr::select(state, ocgs, not_ocgs) %>%
+#   bind_rows(background) %>%
+#   as.data.frame %>%
+#   column_to_rownames("state") %>%
+#   t()
+#
+# thyroid_contingency[1,2] <- thyroid_contingency[1,2] - thyroid_contingency[1,1]
+# thyroid_contingency[2,2] <- thyroid_contingency[2,2] - thyroid_contingency[2,1]
+#
+# thyroid_female_pval <- fisher.test(thyroid_contingency, alternative = "greater")$p.value
+#
+#
+# thyroid_contingency <- fraction_degs_ocg %>%
+#   filter(tissue == "Thyroid", state == "male_specific") %>%
+#   mutate(not_ocgs = n-ocgs) %>%
+#   dplyr::select(state, ocgs, not_ocgs) %>%
+#   bind_rows(background) %>%
+#   as.data.frame %>%
+#   column_to_rownames("state") %>%
+#   t()
+#
+# thyroid_contingency[1,2] <- thyroid_contingency[1,2] - thyroid_contingency[1,1]
+# thyroid_contingency[2,2] <- thyroid_contingency[2,2] - thyroid_contingency[2,1]
+#
+# thyroid_male_pval <- fisher.test(thyroid_contingency, alternative = "greater")$p.value
+#
+#
+# #stomach
+#
+# all_genes <- read_tsv("./files/diff_expr_stomach_males_tcga_tumourVSnormal_edgeR.txt")
+#
+# background <- all_genes %>%
+#   summarise(n = n()) %>%
+#   mutate(ocgs = all_genes %>% semi_join(ocgs, by = c("geneName" = "OncogeneName")) %>% nrow()) %>%
+#   mutate(not_ocgs = n-ocgs) %>%
+#   mutate(state = "background") %>%
+#   dplyr::select(-n)
+#
+# stomach_contingency <- fraction_degs_ocg %>%
+#   filter(tissue == "Stomach", state == "male_specific") %>%
+#   mutate(not_ocgs = n-ocgs) %>%
+#   dplyr::select(state, ocgs, not_ocgs) %>%
+#   bind_rows(background) %>%
+#   as.data.frame %>%
+#   column_to_rownames("state") %>%
+#   t()
+#
+# stomach_contingency[1,2] <- stomach_contingency[1,2] - stomach_contingency[1,1]
+# stomach_contingency[2,2] <- stomach_contingency[2,2] - stomach_contingency[2,1]
+#
+# stomach_male_pval <- fisher.test(stomach_contingency, alternative = "greater")$p.value
+#
+# stomach_contingency <- fraction_degs_ocg %>%
+#   filter(tissue == "Stomach", state == "female_specific") %>%
+#   mutate(not_ocgs = n-ocgs) %>%
+#   dplyr::select(state, ocgs, not_ocgs) %>%
+#   bind_rows(background) %>%
+#   as.data.frame %>%
+#   column_to_rownames("state") %>%
+#   t()
+#
+# stomach_contingency[1,2] <- stomach_contingency[1,2] - stomach_contingency[1,1]
+# stomach_contingency[2,2] <- stomach_contingency[2,2] - stomach_contingency[2,1]
+#
+# stomach_female_pval <- fisher.test(stomach_contingency, alternative = "greater")$p.value
 
 
-# tumour supressor gene status of the DEGs
+
+# oncogene status of the DEGs
 degs3 <- degs %>%
   left_join(ocgs %>% filter(!(OncogeneName %in% tsgs$GeneSymbol)) %>% mutate(ocg = 1) %>% dplyr::select(OncogeneName, ocg), by = c("geneName" = "OncogeneName")) %>%
   mutate(ocg = replace_na(ocg, 0))
 
 
 
-# barplot of number of TSGs up-regulated in tumour/normal tissue by DEG type
+# barplot of number of OCGs up-regulated in tumour/normal tissue by DEG type
 degs3_bp <- degs3 %>%
   filter(state != "common") %>%
   filter(ocg == 1) %>%

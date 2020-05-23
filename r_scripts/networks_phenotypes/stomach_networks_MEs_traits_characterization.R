@@ -20,6 +20,7 @@ library(survival)
 library(data.table)
 library(ranger)
 library(ggfortify)
+library(mygene)
 
 set.seed(123)
 
@@ -81,7 +82,10 @@ skyblue_genes <- apply(skyblue_genes, 1, function(x) kruskal.test(as.numeric(x),
   rownames_to_column(var = "gene") %>%
   as.tibble() %>%
   arrange(kruskal_pval) %>%
-  inner_join(skyblue[, c("genes_ens", "geneName", "geneType", "chrom")], by=c("gene" = "genes_ens"))
+  inner_join(skyblue[, c("genes_ens", "geneName", "geneType", "chrom")], by=c("gene" = "genes_ens")) %>%
+  dplyr::select(gene, geneName, geneType, chrom, kruskal_pval)
+
+write_tsv(skyblue_genes, "./files/stomach_males_skyblue_module_hub_genes_anova.txt")
 
 
 skyblue_genes_expr <- stomach_males_fpkm %>%
@@ -102,6 +106,22 @@ skyblue_genes_expr_c <- skyblue_genes_expr %>%
   mutate_if(is.character, as.factor) %>%
   mutate(geneName = fct_reorder(geneName, kruskal_pval))
 
+
+skyblue_genes_export <- skyblue_genes_expr %>%
+  group_by(gene, geneName, histological_type, kruskal_pval) %>%
+  summarise(n = n(), median_fpkm = median(fpkm)) %>%
+  ungroup() %>%
+  arrange(kruskal_pval)
+
+skyblue_genes_annot <- queryMany(unique(skyblue_genes_export$gene), scopes='ensembl.gene', fields=c("symbol", "name", "summary"), species='human', return.as = "DataFrame") %>%
+  as_tibble() %>%
+  dplyr::select(query, name, summary)
+
+skyblue_genes_export <- skyblue_genes_export %>%
+  inner_join(skyblue_genes_annot, by = c("gene" = "query")) %>%
+  dplyr::select(gene, geneName, name, summary, histological_type, kruskal_pval, n, median_fpkm)
+
+write_tsv(skyblue_genes_export, "./files/stomach_males_skyblue_module_hub_genes_kruskal.txt")
 
 
 #females

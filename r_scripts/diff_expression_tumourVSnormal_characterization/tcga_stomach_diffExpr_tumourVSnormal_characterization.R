@@ -12,6 +12,7 @@ library(VennDiagram)
 library(viridis)
 library(mygene)
 library(ggVennDiagram)
+library(eulerr)
 
 source("./r_scripts/utils.R")
 
@@ -118,6 +119,12 @@ ggsave(filename="stomach_males_females_signf_degs_venn_gg.png", plot=ggVenn, pat
 ggsave(filename="stomach_males_females_signf_degs_venn_gg.pdf", plot=ggVenn, path = "./plots/diff_expression_tumourVSnormal/", width=4, height=4)
 unlink("stomach_males_females_signf_degs_venn_gg.png")
 unlink("stomach_males_females_signf_degs_venn_gg.pdf")
+
+
+pdf(file = "./plots/diff_expression_tumourVSnormal/stomach_males_females_signf_degs_venn_eulerr.pdf", width=4, height=4)
+euler_venn <- euler(c("A" = as.numeric(table(males_females_signf_degs$state)["female_specific"]), "B" = as.numeric(table(males_females_signf_degs$state)["male_specific"]), "A&B" = as.numeric(table(males_females_signf_degs$state)["common"])))
+plot(euler_venn, quantities = list(cex = 1.7), fills=c("#bd0026", "#1f78b4", "#fdd0a2"), labels = NULL)
+dev.off()
 
 
 

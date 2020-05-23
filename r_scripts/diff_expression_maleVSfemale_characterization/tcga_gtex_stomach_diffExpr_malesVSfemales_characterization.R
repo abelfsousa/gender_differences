@@ -13,6 +13,7 @@ library(viridis)
 library(mygene)
 library(data.table)
 library(ggVennDiagram)
+library(eulerr)
 
 
 source("./r_scripts/utils.R")
@@ -73,7 +74,7 @@ write.table(tumour_normal_signf_degs_annot, "./files/stomach_tumour_normal_signf
 
 
 
-# Venn Diagram
+# Venn Diagrams
 males_females_signf_degs_venn <- draw.pairwise.venn(
   sum(table(tumour_normal_signf_degs$state)[c("common", "normal_specific")]),
   sum(table(tumour_normal_signf_degs$state)[c("common", "tumour_specific")]),
@@ -89,6 +90,7 @@ ggsave(filename="stomach_tumour_normal_signf_degs_venn.png", plot=males_females_
 ggsave(filename="stomach_tumour_normal_signf_degs_venn.pdf", plot=males_females_signf_degs_venn, path = "./plots/diff_expression_maleVSfemale_gtex_normal/", width=4, height=4)
 unlink("stomach_tumour_normal_signf_degs_venn.png")
 unlink("stomach_tumour_normal_signf_degs_venn.pdf")
+
 
 ggVenn <- bind_rows(
   normal_signf_degs %>% dplyr::select(geneName) %>% mutate(category = "normal\nspecific"),
@@ -107,6 +109,14 @@ unlink("stomach_tumour_normal_signf_degs_venn_gg.png")
 unlink("stomach_tumour_normal_signf_degs_venn_gg.pdf")
 
 write_rds(ggVenn, "./r_objects/plots/figure2/stomach_tumour_normal_signf_degs_maleVsfemale_venn_ggplot.rds")
+
+
+pdf(file = "./plots/diff_expression_maleVSfemale_gtex_normal/stomach_tumour_normal_signf_degs_venn_eulerr.pdf", width=4, height=4)
+euler_venn <- euler(c("A" = as.numeric(table(tumour_normal_signf_degs$state)["normal_specific"]), "B" = as.numeric(table(tumour_normal_signf_degs$state)["tumour_specific"]), "A&B" = as.numeric(table(tumour_normal_signf_degs$state)["common"])))
+plot(euler_venn, quantities = TRUE, fills=c("#a1d76a", "#ca0020", "#bf812d"), labels = NULL)
+dev.off()
+
+
 
 # append DEGs state
 diff_expr_tumour_table <- diff_expr_tumour_table %>%

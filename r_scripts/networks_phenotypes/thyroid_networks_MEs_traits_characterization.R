@@ -21,6 +21,7 @@ library(data.table)
 library(ranger)
 library(ggfortify)
 library(survminer)
+library(mygene)
 
 set.seed(123)
 
@@ -82,7 +83,8 @@ greenyel_genes <- apply(greenyel_genes, 1, function(x) kruskal.test(as.numeric(x
   rownames_to_column(var = "gene") %>%
   as.tibble() %>%
   arrange(kruskal_pval) %>%
-  inner_join(greenyel[, c("genes_ens", "geneName", "geneType", "chrom")], by=c("gene" = "genes_ens"))
+  inner_join(greenyel[, c("genes_ens", "geneName", "geneType", "chrom")], by=c("gene" = "genes_ens")) %>%
+  dplyr::select(gene, geneName, geneType, chrom, kruskal_pval)
 
 
 greenyel_genes_expr <- thyroid_females_fpkm %>%
@@ -102,6 +104,23 @@ greenyel_genes_expr_c <- greenyel_genes_expr %>%
   ungroup() %>%
   mutate_if(is.character, as.factor) %>%
   mutate(geneName = fct_reorder(geneName, kruskal_pval))
+
+
+greenyel_genes_export <- greenyel_genes_expr %>%
+  group_by(gene, geneName, histological_type, kruskal_pval) %>%
+  summarise(n = n(), median_fpkm = median(fpkm)) %>%
+  ungroup() %>%
+  arrange(kruskal_pval)
+
+greenyel_genes_annot <- queryMany(unique(greenyel_genes_export$gene), scopes='ensembl.gene', fields=c("symbol", "name", "summary"), species='human', return.as = "DataFrame") %>%
+  as_tibble() %>%
+  dplyr::select(query, name, summary)
+
+greenyel_genes_export <- greenyel_genes_export %>%
+  inner_join(greenyel_genes_annot, by = c("gene" = "query")) %>%
+  dplyr::select(gene, geneName, name, summary, histological_type, kruskal_pval, n, median_fpkm)
+
+write_tsv(greenyel_genes_export, "./files/thyroid_females_greenyellow_module_hub_genes_kruskal.txt")
 
 
 #males
