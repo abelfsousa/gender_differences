@@ -169,5 +169,22 @@ diff_expr_gtex_table %>% filter(FDR < 0.05) %>% nrow()
 #525
 
 
+# write datasets
+datasets <- thyroid_gtex_fpkm %>%
+	rownames_to_column(var = "geneID") %>%
+	as_tibble() %>%
+	inner_join(tcga.geneIDs.annot[, c("geneID", "geneName")]) %>%
+	select(geneID, geneName, everything()) %>%
+	select(-geneID)
+
+females <- datasets %>%
+	select_at(.vars = c("geneName", rownames(thyroid_gtex_meta[thyroid_gtex_meta$GENDER == "female", ])))
+
+males <- datasets %>%
+	select_at(.vars = c("geneName", rownames(thyroid_gtex_meta[thyroid_gtex_meta$GENDER == "male", ])))
+
+write_tsv(females, "./files/thyroid_gtex_females_fpkm.txt")
+write_tsv(males, "./files/thyroid_gtex_males_fpkm.txt")
+
 
 save(list=ls(), file="r_workspaces/tcga_gtex_thyroid_diffExpr_malesVSfemales.RData")

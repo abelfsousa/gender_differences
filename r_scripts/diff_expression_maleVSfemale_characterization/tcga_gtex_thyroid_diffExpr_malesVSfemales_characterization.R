@@ -452,5 +452,84 @@ fisher.test(matrix(c(29,1,24,352),2,2), alternative = "greater")$p.value
 
 
 
+# enrichment for lipids metabolic processes
+all_diff_genes %>%
+  filter(p.adjust < 0.05 & state == "normal_specific" & str_detect(ID, "LIP")) %>%
+  as.data.frame()
+
+all_diff_genes %>%
+  filter(p.adjust < 0.05 & state == "normal_specific" & str_detect(ID, "LIP")) %>%
+  mutate(log10_p = -log10(p.adjust)) %>%
+  mutate_if(is.character, as.factor) %>%
+  mutate(ID = fct_reorder(ID, Count), Description = fct_infreq(Description)) %>%
+  ggplot(mapping = aes(x=ID, y = Count, fill = log10_p)) +
+  geom_bar(stat="identity") +
+  theme_classic() +
+  facet_grid(. ~ Description,
+    scales = "free",
+    space = "free_y",
+    labeller=labeller(Description = c("GO_BP" = "GO BP"))) +
+  theme(
+    axis.title.x=element_text(colour="black", size=17),
+    axis.title.y=element_blank(),
+    axis.text.y=element_text(colour="black", size=15),
+    axis.text.x=element_text(colour="black", size=15),
+    plot.title = element_text(colour="black", size=20),
+    strip.text.x = element_text(colour="black", size=15),
+    strip.background = element_blank(),
+    legend.text = element_text(colour="black", size=14),
+    legend.title = element_text(colour="black", size=15)) +
+  coord_flip() +
+  scale_fill_viridis(option="D", name="Adjusted P-value\n(-log10)") +
+  scale_y_continuous(limits=c(NA,30)) +
+  labs(title = "Thyroid")
+ggsave(filename="thyroid_tumour_normal_enr_bp_normal_specific_lipids.png", path="./plots/diff_expression_maleVSfemale_gtex_normal/", width = 9, height = 3)
+ggsave(filename="thyroid_tumour_normal_enr_bp_normal_specific_lipids.pdf", path="./plots/diff_expression_maleVSfemale_gtex_normal/", width = 9, height = 3)
+unlink("thyroid_tumour_normal_enr_bp_normal_specific_lipids.png")
+unlink("thyroid_tumour_normal_enr_bp_normal_specific_lipids.pdf")
+
+
+all_diff_genes %>%
+  filter(p.adjust < 0.05 & state == "normal_specific" & str_detect(ID, "LIP")) %>%
+  dplyr::select(state, Description, ID, geneID, Count, p.adjust) %>%
+  mutate(geneID = str_split(geneID, "/")) %>%
+  unnest() %>%
+  inner_join(tumour_normal_signf_degs %>% dplyr::select(geneName, log2FC_normal), by = c("geneID" = "geneName")) %>%
+  mutate_if(is.character, as.factor) %>%
+  mutate(ID = fct_reorder(ID, Count), Description = fct_infreq(Description)) %>%
+  mutate(log10_p = -log10(p.adjust)) %>%
+  ggplot(mapping = aes(x=ID, y = log2FC_normal, fill = log10_p)) +
+  geom_boxplot(show.legend = FALSE) +
+  geom_hline(yintercept = 0, linetype="dashed", color = "black", size=0.3) +
+  theme_classic() +
+  facet_grid(. ~ Description,
+    scales = "free",
+    space = "free_y",
+    labeller=labeller(Description = c("GO_BP" = "GO BP"))) +
+  theme(
+    axis.title.x=element_text(colour="black", size=17),
+    axis.title.y=element_blank(),
+    axis.text.y=element_text(colour="black", size=15),
+    axis.text.x=element_text(colour="black", size=15),
+    plot.title = element_text(colour="black", size=20),
+    strip.text.x = element_text(colour="black", size=15),
+    strip.background = element_blank(),
+    legend.text = element_text(colour="black", size=14),
+    legend.title = element_text(colour="black", size=15)) +
+  coord_flip() +
+  scale_fill_viridis(option="D", name="Adjusted P-value\n(-log10)") +
+  labs(x = "", y = "log2FC", title = "Thyroid")
+ggsave(filename="thyroid_tumour_normal_enr_bp_normal_specific_lipidsFC.png", path="./plots/diff_expression_maleVSfemale_gtex_normal/", width = 9, height = 3)
+ggsave(filename="thyroid_tumour_normal_enr_bp_normal_specific_lipidsFC.pdf", path="./plots/diff_expression_maleVSfemale_gtex_normal/", width = 9, height = 3)
+unlink("thyroid_tumour_normal_enr_bp_normal_specific_lipidsFC.png")
+unlink("thyroid_tumour_normal_enr_bp_normal_specific_lipidsFC.pdf")
+
+
+
+write_tsv(
+  tumour_normal_signf_degs %>%
+    filter(state == "normal_specific") %>%
+    dplyr::select(geneName),
+    "./files/thyroid_MvsF_sbgs_normal_specific.txt")
 
 save(list=ls(), file="r_workspaces/tcga_gtex_thyroid_diffExpr_malesVSfemales_characterization.RData")

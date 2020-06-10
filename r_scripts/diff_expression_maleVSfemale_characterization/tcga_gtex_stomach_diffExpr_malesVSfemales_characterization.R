@@ -453,5 +453,10 @@ diff_expr_normal_table %>% filter(chrom == "chrX") %>% semi_join(escape, by=c("g
 fisher.test(matrix(c(22,0,32,359),2,2), alternative = "greater")$p.value
 
 
+write_tsv(
+  tumour_normal_signf_degs %>%
+    filter(state == "normal_specific") %>%
+    dplyr::select(geneName),
+    "./files/stomach_MvsF_sbgs_normal_specific.txt")
 
 save(list=ls(), file="r_workspaces/tcga_gtex_stomach_diffExpr_malesVSfemales_characterization.RData")
