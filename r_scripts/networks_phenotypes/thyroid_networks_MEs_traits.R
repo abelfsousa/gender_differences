@@ -227,4 +227,46 @@ females_tumour_network_MEs <- cbind(sample = rownames(females_tumour), females_t
 write.table(females_tumour_network_MEs, "./files/thyroid_females_tumour_network_MEs_traits.txt", quote=F, sep="\t", row.names=F)
 
 
+
+#
+library(survival)
+clin <- fread("./data/tcga/tcga_clinical_data.txt") %>%
+  as.tibble() %>%
+  mutate(bcr_patient_barcode = str_replace_all(bcr_patient_barcode, "-", ".")) %>%
+  filter(type == "THCA") %>%
+  dplyr::select(sample = bcr_patient_barcode, OS, OS.time)
+
+modules <- tumourME_females %>%
+  dplyr::select(sample, MEcyan, MEgreenyellow) %>%
+  pivot_longer(-sample, names_to = "ME", values_to = "ME_value")
+
+os <- tumourME_females %>%
+  inner_join(clin[, c("sample", "OS")], by = "sample") %>%
+  dplyr::select(sample, OS.time, OS)
+
+
+cox_model <- function(df){
+  dat <- df
+
+  cox_test <- coxph(Surv(OS.time, OS) ~ ME_value, data=dat)
+
+  sm <- summary(cox_test)
+
+  ME_pval <- sm$coefficients["ME_value", "Pr(>|z|)"]
+  ME_beta <- sm$coefficients["ME_value", "coef"]
+  ME_hr <- sm$coefficients["ME_value", "exp(coef)"]
+  lrank_pval <- sm$sctest["pvalue"]
+
+  tibble(ME_pval=ME_pval, ME_beta = ME_beta, ME_hr = ME_hr, lrank_pval = lrank_pval)
+}
+
+mod <- inner_join(modules, os, by = "sample") %>%
+  group_by(ME) %>%
+  nest() %>%
+  ungroup() %>%
+  mutate(model = map(.x = data, .f = cox_model)) %>%
+  unnest(model)
+
+
+
 save(list=ls(), file="r_workspaces/thyroid_networks_MEs_traits.RData")
